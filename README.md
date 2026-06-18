@@ -26,7 +26,7 @@ EventSystem：Unity UI 点击系统，必须有
 
 MainRoomController：控制这些按钮的脚本物体，不显示在画面上
 
-# SCN_Call，也就是电话通话界面。这些东西的意思是：
+# SCN_Call，电话通话界面
 
 Text_NPC：显示当前 NPC 名字和人格
 例：Lena [Feeling]
