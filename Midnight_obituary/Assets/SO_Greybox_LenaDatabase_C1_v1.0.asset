@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2004b5ae7eec77d409f7d7d7ecde994e, type: 3}
+  m_Name: SO_Greybox_LenaDatabase_C1_v1.0
+  m_EditorClassIdentifier: 
+  GameConfig: {fileID: 11400000, guid: 51fe28245ffdbf340951d714a3216414, type: 2}
+  Mission: {fileID: 11400000, guid: da6e786763133c5419c8fcfe6d093737, type: 2}
+  Npc: {fileID: 11400000, guid: 3f179697a7341d04aa5223e23e6ff9cb, type: 2}
+  Obituary: {fileID: 11400000, guid: cd89c13ac254e244d943f4a3095f6be0, type: 2}
+  YellowPageEntry: {fileID: 11400000, guid: 5298409d653de3a4489e3cfc76825b00, type: 2}
+  DialogueTree: {fileID: 11400000, guid: e63489d101b67864f95f979712503b1f, type: 2}

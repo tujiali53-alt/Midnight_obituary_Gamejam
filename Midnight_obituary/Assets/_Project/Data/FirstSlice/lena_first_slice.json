@@ -1,0 +1,19 @@
+﻿{
+  "npcId": "npc_lena",
+  "missionId": "mission_lena_001",
+  "obituaryId": "obit_lena_001",
+  "yellowPageEntryId": "yp_lena_home",
+  "dialogueTreeId": "dlg_lena_001",
+  "displayName": "Lena",
+  "phoneNumber": "KL5-0197",
+  "address": "17 Willow Lane",
+  "personalityTag": "Feeling",
+  "breakdownMax": 3,
+  "delayTargetCount": 30,
+  "requiredPlayableOutcomes": [
+    "DeepRedemption",
+    "DelayRewrite",
+    "CallFailed"
+  ],
+  "notes": "First vertical-slice data stub. Convert to ScriptableObject assets in Unity after greybox UI exists."
+}

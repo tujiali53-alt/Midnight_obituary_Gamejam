@@ -104,3 +104,15 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Nested Unity project generated files
+/Midnight_obituary/[Ll]ibrary/
+/Midnight_obituary/[Tt]emp/
+/Midnight_obituary/[Oo]bj/
+/Midnight_obituary/[Bb]uild/
+/Midnight_obituary/[Bb]uilds/
+/Midnight_obituary/[Ll]ogs/
+/Midnight_obituary/[Uu]ser[Ss]ettings/
+/Midnight_obituary/[Mm]emoryCaptures/
+/Midnight_obituary/[Rr]ecordings/
+/Midnight_obituary/[Aa]ssets/Unity.VisualScripting.Generated/

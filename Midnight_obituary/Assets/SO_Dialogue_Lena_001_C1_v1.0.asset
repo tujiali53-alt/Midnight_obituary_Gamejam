@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SO_Dialogue_Lena_001_C1_v1.0
+  m_EditorClassIdentifier: MidnightObituary.Runtime:MidnightObituary.Gameplay.Definitions:DialogueTreeDefinition
+  DialogueTreeId: dlg_lena_001
+  NpcId: npc_lena
+  RootNodeId: node_start
+  Nodes:
+  - NodeId: node_start
+    SpeakerId: npc_lena
+    Text: "Who is this? Why are you calling so late?\r"
+    IsDeepRedemptionGate: 0
+    Choices:
+    - ChoiceId: choice_lena_soft_open
+      Text: I saw your name in tomorrow's paper. I want to help.
+      Tags: 00000000
+      HasDiceCheck: 0
+      DiceStat: 0
+      Difficulty: 0
+      ExtraBonus: 0
+      SuccessNodeId: 
+      FailureNodeId: 
+      NextNodeId: node_trust
+      CountsAsPlayerSpeech: 1
+    - ChoiceId: choice_lena_cold_open
+      Text: Listen carefully. Your current plan is irrational.
+      Tags: 01000000
+      HasDiceCheck: 0
+      DiceStat: 0
+      Difficulty: 0
+      ExtraBonus: 0
+      SuccessNodeId: 
+      FailureNodeId: 
+      NextNodeId: node_panic
+      CountsAsPlayerSpeech: 1
+  - NodeId: node_trust
+    SpeakerId: npc_lena
+    Text: "You sound like you actually mean it. But I don't know if I can believe
+      you.\r"
+    IsDeepRedemptionGate: 1
+    Choices:
+    - ChoiceId: choice_lena_insight_check
+      Text: Tell me what is on the table beside you.
+      Tags: 00000000
+      HasDiceCheck: 1
+      DiceStat: 2
+      Difficulty: 5
+      ExtraBonus: 0
+      SuccessNodeId: node_saved
+      FailureNodeId: node_panic
+      NextNodeId: 
+      CountsAsPlayerSpeech: 1
+  - NodeId: node_panic
+    SpeakerId: npc_lena
+    Text: "No. This is wrong. You don't know me. Stop calling.\r\r\n\r"
+    IsDeepRedemptionGate: 0
+    Choices:
+    - ChoiceId: choice_lena_push_wrong
+      Text: If you hang up, everything ends exactly as written.
+      Tags: 01000000
+      HasDiceCheck: 0
+      DiceStat: 2
+      Difficulty: 5
+      ExtraBonus: 0
+      SuccessNodeId: node_saved
+      FailureNodeId: node_panic
+      NextNodeId: node_panic
+      CountsAsPlayerSpeech: 1
+  - NodeId: node_saved
+    SpeakerId: npc_lena
+    Text: The room is quiet now. I think I can wait until morning.
+    IsDeepRedemptionGate: 1
+    Choices:
+    - ChoiceId: choice_lena_push_wrong
+      Text: If you hang up, everything ends exactly as written.
+      Tags: 01000000
+      HasDiceCheck: 0
+      DiceStat: 2
+      Difficulty: 5
+      ExtraBonus: 0
+      SuccessNodeId: node_saved
+      FailureNodeId: node_panic
+      NextNodeId: node_panic
+      CountsAsPlayerSpeech: 1
