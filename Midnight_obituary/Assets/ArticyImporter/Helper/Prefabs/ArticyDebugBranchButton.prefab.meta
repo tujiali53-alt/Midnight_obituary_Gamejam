@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0f55dfa733c12e34daf488047675488f
+timeCreated: 1471957509
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 269542
+  packageName: articy:draft X Importer
+  packageVersion: 1.3.1
+  assetPath: Assets/ArticyImporter/Helper/Prefabs/ArticyDebugBranchButton.prefab
+  uploadId: 874436
