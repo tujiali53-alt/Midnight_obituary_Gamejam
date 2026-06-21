@@ -11,6 +11,7 @@ namespace ObituaryTomorrow.Core
         [SerializeField] private string mainRoomSceneName = "SCN_MainRoom";
         [SerializeField] private string callSceneName = "SCN_Call";
         [SerializeField] private string mainMenuSceneName = "SCN_MainMenu";
+        [SerializeField] private bool loadCallSceneOnStartCall;
 
         public GameState CurrentState { get; private set; }
         public GameSessionData Session { get; private set; }
@@ -83,6 +84,12 @@ namespace ObituaryTomorrow.Core
             LoadScene(mainRoomSceneName);
         }
 
+        public void SetCurrentMission(string missionId)
+        {
+            EnsureSession();
+            Session.CurrentMissionId = string.IsNullOrWhiteSpace(missionId) ? string.Empty : missionId;
+        }
+
         public void StartCall(string npcId, string dialogueId)
         {
             EnsureSession();
@@ -90,7 +97,11 @@ namespace ObituaryTomorrow.Core
             Session.CurrentNpcId = npcId;
             ChangeState(GameState.Dialing);
 
-            LoadScene(callSceneName);
+            if (loadCallSceneOnStartCall)
+            {
+                LoadScene(callSceneName);
+            }
+
             ChangeState(GameState.InCall);
         }
 
