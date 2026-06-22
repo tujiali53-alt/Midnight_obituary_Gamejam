@@ -99,11 +99,11 @@
 | ------------- | ------------- | -------------------- | -------- | ------------ | ----------------------------------------------------- | ------ |
 | 电话与NPC系统 | SYS_PHONE_001 | Phone_StartCall      | 电话     | 动画结束     | 进入通话界面                                          | P0     |
 | 电话与NPC系统 | SYS_PHONE_002 | Phone_EndCall        | 电话     | 通话结束     | 卸载通话数据并进入结算                                | P0     |
-| 电话与NPC系统 | SYS_NPC_001   | NPC_LoadData         | NPC      | 通话开始     | 加载NPC固定人格、初始崩溃值1、崩溃上限3、拖延阈值配置 | P0     |
+| 电话与NPC系统 | SYS_NPC_001   | NPC_LoadData         | NPC      | 通话开始     | 加载NPC人物类型、初始崩溃值、崩溃上限、拖延阈值配置 | P0     |
 | 电话与NPC系统 | SYS_NPC_002   | NPC_ShowPersonality  | NPC      | 通话开始     | 显示NPC人格                                           | P0     |
 | 电话与NPC系统 | SYS_NPC_003   | NPC_BreakdownChange  | 数值     | 玩家发言后   | 修改NPC崩溃值，并限制在0到崩溃上限之间                | P0     |
 | 电话与NPC系统 | SYS_NPC_004   | NPC_CheckHangup      | 失败判断 | 崩溃值变化后 | 达到上限则挂断                                        | P0     |
-| 电话与NPC系统 | SYS_NPC_005   | NPC_InitDefaultState | NPC      | 通话开始     | 初始化NPC当前崩溃值为1                                | P0     |
+| 电话与NPC系统 | SYS_NPC_005   | NPC_InitDefaultState | NPC      | 通话开始     | 使用NPC配置的初始崩溃值初始化当前崩溃值                | P0     |
 |               |               |                      |          |              |                                                       |        |
 
 ## 对话与骰子
@@ -116,7 +116,7 @@
 | 对话与骰子系统 | SYS_DIALOG_004 | Dialog_ApplyPlayerTagResult | 对话数值 | 规则判断后 | 根据人格匹配结果修改玩家压力值               | P0     |
 | 对话与骰子系统 | SYS_DIALOG_005 | Dialog_ApplyNPCTagResult    | 对话数值 | 规则判断后 | 根据人格匹配结果修改NPC崩溃值                | P0     |
 | 对话与骰子系统 | SYS_DIALOG_006 | Dialog_NodeJump             | 对话     | 结算完成   | 跳转到下一对话节点                           | P0     |
-| 对话与骰子系统 | SYS_DICE_001   | Dice_Roll2D6PlusMinus       | 骰子     | 触发判定   | 投掷正骰与负骰                               | P0     |
+| 对话与骰子系统 | SYS_DICE_001   | Dice_Roll2D6StatCheck       | 骰子     | 触发判定   | 投掷 2D6 并加入人物属性与额外加值             | P0     |
 | 对话与骰子系统 | SYS_DICE_002   | Dice_CheckResult            | 骰子     | 投骰结束   | 计算判定是否成功                             | P0     |
 | 对话与骰子系统 | SYS_DICE_003   | Dice_ApplyBranch            | 骰子     | 判定结束   | 根据成功或失败进入对应分支                   | P0     |
 |                |                |                             |          |            |                                              |        |
