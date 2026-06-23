@@ -1,26 +1,35 @@
+using System;
 using UnityEngine;
 using ObituaryTomorrow.Core;
+using ObituaryTomorrow.Data;
 
 namespace ObituaryTomorrow.Gameplay.NPC
 {
     public sealed class NPCManager : MonoBehaviour
     {
+        [Header("NPC Definitions")]
+        [SerializeField] private NPCDefinition[] npcDefinitions;
+
         [Header("Default NPC")]
         [SerializeField] private string defaultNpcId = "NPC_Lena_001";
         [SerializeField] private string defaultDisplayName = "Lena";
         [SerializeField] private PersonalityTag defaultPersonalityTag = PersonalityTag.Emotional;
         [SerializeField] private int defaultMaxBreakdown = 3;
         [SerializeField] private int defaultStartingBreakdown = 1;
+        [SerializeField] private int defaultDelayThreshold = 30;
+        [SerializeField] private string defaultDialogueId = "DIA_Lena_001";
 
-        public string CurrentNpcId { get; private set; }
-        public string DisplayName { get; private set; }
-        public PersonalityTag PersonalityTag { get; private set; }
-        public int CurrentBreakdown { get; private set; }
-        public int MaxBreakdown { get; private set; }
+        public NPCRuntimeData CurrentNPC { get; private set; }
+        public bool HasActiveNPC => CurrentNPC != null;
+        public string CurrentNpcId => CurrentNPC != null ? CurrentNPC.NpcId : string.Empty;
+        public string DisplayName => CurrentNPC != null ? CurrentNPC.DisplayName : string.Empty;
+        public PersonalityTag PersonalityTag => CurrentNPC != null ? CurrentNPC.PersonalityTag : defaultPersonalityTag;
+        public int CurrentBreakdown => CurrentNPC != null ? CurrentNPC.Breakdown : 0;
+        public int MaxBreakdown => CurrentNPC != null ? CurrentNPC.MaxBreakdown : Mathf.Max(1, defaultMaxBreakdown);
 
         private void Awake()
         {
-            if (string.IsNullOrWhiteSpace(CurrentNpcId))
+            if (!HasActiveNPC)
             {
                 BeginCall(defaultNpcId);
             }
@@ -28,26 +37,52 @@ namespace ObituaryTomorrow.Gameplay.NPC
 
         public void BeginCall(string npcId)
         {
-            CurrentNpcId = string.IsNullOrWhiteSpace(npcId) ? defaultNpcId : npcId;
-            DisplayName = defaultDisplayName;
-            PersonalityTag = defaultPersonalityTag;
-            MaxBreakdown = Mathf.Max(1, defaultMaxBreakdown);
-            CurrentBreakdown = Mathf.Clamp(defaultStartingBreakdown, 0, MaxBreakdown);
+            LoadNPC(npcId);
+        }
+
+        public OperationResult LoadNPC(string npcId)
+        {
+            string resolvedNpcId = string.IsNullOrWhiteSpace(npcId) ? defaultNpcId : npcId;
+            NPCDefinition definition = FindDefinition(resolvedNpcId);
+            CurrentNPC = definition != null ? definition.CreateRuntimeData() : CreateDefaultRuntimeData(resolvedNpcId);
 
             GameEventBus.RaiseNPCBreakdownChanged(
                 new NPCBreakdownChangedEventArgs(CurrentNpcId, CurrentBreakdown, CurrentBreakdown, MaxBreakdown, StatChangeReason.Debug));
+
+            return OperationResult.Ok(definition != null
+                ? $"Loaded NPC definition: {CurrentNpcId}"
+                : $"Loaded fallback NPC data: {CurrentNpcId}");
+        }
+
+        public void ClearCurrentNPC()
+        {
+            CurrentNPC = null;
+        }
+
+        public PersonalityTag GetCurrentNPCPersonality()
+        {
+            return PersonalityTag;
+        }
+
+        public StatChangeResult RequestBreakdownChange(BreakdownChangeRequest request)
+        {
+            string sourceId = string.IsNullOrWhiteSpace(request.SourceChoiceId)
+                ? request.SourceNodeId
+                : $"{request.SourceNodeId}:{request.SourceChoiceId}";
+
+            return RequestBreakdownChange(new NPCBreakdownChangeRequest(CurrentNpcId, request.Delta, request.Reason, sourceId));
         }
 
         public StatChangeResult RequestBreakdownChange(NPCBreakdownChangeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(CurrentNpcId))
+            if (!HasActiveNPC)
             {
                 BeginCall(request.NpcId);
             }
 
             int oldValue = CurrentBreakdown;
             int newValue = Mathf.Clamp(oldValue + request.Delta, 0, MaxBreakdown);
-            CurrentBreakdown = newValue;
+            CurrentNPC.Breakdown = newValue;
 
             bool applied = oldValue != newValue;
 
@@ -67,6 +102,11 @@ namespace ObituaryTomorrow.Gameplay.NPC
                 request.Reason);
         }
 
+        public bool IsBreakdownZero()
+        {
+            return CurrentBreakdown <= 0;
+        }
+
         public bool IsBreakdownMaxed()
         {
             return CurrentBreakdown >= MaxBreakdown;
@@ -80,6 +120,56 @@ namespace ObituaryTomorrow.Gameplay.NPC
                 CurrentNpcId,
                 true,
                 false);
+        }
+
+        private NPCDefinition FindDefinition(string npcId)
+        {
+            if (npcDefinitions == null || npcDefinitions.Length == 0)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < npcDefinitions.Length; i++)
+            {
+                NPCDefinition definition = npcDefinitions[i];
+                if (definition != null && string.Equals(definition.NpcId, npcId, StringComparison.Ordinal))
+                {
+                    return definition;
+                }
+            }
+
+            return null;
+        }
+
+        private NPCRuntimeData CreateDefaultRuntimeData(string npcId)
+        {
+            int maxBreakdown = Mathf.Max(1, defaultMaxBreakdown);
+            int currentBreakdown = Mathf.Clamp(defaultStartingBreakdown, 0, maxBreakdown);
+
+            return new NPCRuntimeData(
+                string.IsNullOrWhiteSpace(npcId) ? defaultNpcId : npcId,
+                defaultDisplayName,
+                defaultPersonalityTag,
+                currentBreakdown,
+                maxBreakdown,
+                Mathf.Max(1, defaultDelayThreshold),
+                defaultDialogueId);
+        }
+    }
+
+    public readonly struct BreakdownChangeRequest
+    {
+        public int Delta { get; }
+        public StatChangeReason Reason { get; }
+        public string SourceNodeId { get; }
+        public string SourceChoiceId { get; }
+
+        public BreakdownChangeRequest(int delta, StatChangeReason reason, string sourceNodeId, string sourceChoiceId)
+        {
+            Delta = delta;
+            Reason = reason;
+            SourceNodeId = sourceNodeId;
+            SourceChoiceId = sourceChoiceId;
         }
     }
 
