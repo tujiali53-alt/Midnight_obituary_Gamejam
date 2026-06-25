@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 1760449090, guid: 538242286e35fb84f8e90dd86ba08b80, type: 3}
   m_Name: ArticyPluginSettings
   m_EditorClassIdentifier: 
-  mUsedImportFile: 
+  mUsedImportFile: "Assets/_Project/Art/articy/\u660E\u65E5\u8BA3\u544A_chapterjudith_edition1.articyu3d"
   mUsedLocalizationPath: 
   mAddressablesGroupsKeys: []
   mAddressablesGroupsValues: []
@@ -21,6 +21,6 @@ MonoBehaviour:
   mSCMIgnoreState: 0
   mArticyAssetsAddressablesIgnoreState: 0
   mShowObjectsInDatabaseView: 1
-  mLastPluginVersion: 
+  mLastPluginVersion: 1.3.1.43132
   mAutomaticallyTriggerImport: 1
   mUseAssemblyDefinitions: 0
