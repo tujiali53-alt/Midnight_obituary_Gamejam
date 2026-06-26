@@ -18,7 +18,7 @@ namespace ObituaryTomorrow.Gameplay.Player
         {
             EnsureRuntimeData();
 
-            if (initializeOnStart)
+            if (initializeOnStart && GameManager.Instance == null)
             {
                 InitializeNewPlayer(new PlayerInitRequest(new[]
                 {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using ObituaryTomorrow.Core;
 using ObituaryTomorrow.Gameplay.Call;
@@ -17,7 +18,7 @@ namespace ObituaryTomorrow.UI
         private const string DefaultMissionId = "MIS_Lena_001";
         private const string DefaultNpcId = "NPC_Lena_001";
         private const string DefaultDialogueId = "DIA_Lena_001";
-
+        private const string DefaultCallSceneName = "SCN_Call";
         [Header("Gameplay")]
         [SerializeField] private PlayerManager playerManager;
         [SerializeField] private NPCManager npcManager;
@@ -230,8 +231,9 @@ namespace ObituaryTomorrow.UI
         {
             if (!missionConfirmed)
             {
-                ShowDialoguePrompt("你还没有确认任务。先查看报纸。");
-                return;
+                missionConfirmed = true;
+                GameManager.Instance?.SetCurrentMission(DefaultMissionId);
+                RefreshStaticTexts();
             }
 
             if (GameManager.Instance == null)
@@ -249,11 +251,7 @@ namespace ObituaryTomorrow.UI
             npcManager?.BeginCall(DefaultNpcId);
             callCounterSystem?.BeginCall(DefaultNpcId);
 
-            SetPanelVisible(dialogueAreaRoot, true);
-            RefreshNpcTexts();
-            ShowDialoguePrompt("电话接通了。雨声、电流声和陌生人的呼吸一起挤进听筒。");
-            BuildChoiceButtons();
-            RefreshInteractableState();
+            SceneManager.LoadScene(DefaultCallSceneName);
         }
 
         private void SelectChoice(DialogueChoiceConfig choice)
@@ -440,6 +438,7 @@ namespace ObituaryTomorrow.UI
             SetPanelVisible(panelResult, false);
         }
 
+
         private void ResetDialogueArea()
         {
             SetPanelVisible(dialogueAreaRoot, true);
@@ -536,7 +535,7 @@ namespace ObituaryTomorrow.UI
 
             if (buttonDial != null)
             {
-                buttonDial.interactable = missionConfirmed && !inCall;
+                buttonDial.interactable = !inCall;
             }
 
             if (buttonOpenNewspaper != null)
@@ -589,6 +588,7 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonOpenTaskBook, FindComponentByObjectName<Button>("Button_OpenTaskBook"));
             AssignIfMissing(ref buttonOpenCard, FindComponentByObjectName<Button>("Button_OpenCard"));
             AssignIfMissing(ref buttonOpenAchievement, FindComponentByObjectName<Button>("Button_OpenAchievement"));
+            AssignIfMissing(ref buttonDial, FindComponentByObjectName<Button>("Button_Dial"));
 
             AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));
