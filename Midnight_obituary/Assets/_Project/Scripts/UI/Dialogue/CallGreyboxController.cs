@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.TextCore.LowLevel;
 using ObituaryTomorrow.Core;
+using ObituaryTomorrow.Gameplay.Call;
 using ObituaryTomorrow.Gameplay.Player;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -25,6 +26,8 @@ namespace ObituaryTomorrow.UI
 
         [Header("Gameplay")]
         [SerializeField] private PlayerManager playerManager;
+        [SerializeField] private CallCounterSystem callCounterSystem;
+        [SerializeField] private bool autoStartOnStart = true;
 
         [Header("Articy")]
         [SerializeField] private string openingFragmentTechnicalName = DefaultOpeningFragmentTechnicalName;
@@ -47,6 +50,7 @@ namespace ObituaryTomorrow.UI
         private TMP_FontAsset runtimeChineseFont;
         private DialogueFragment currentFragment;
         private bool delayReminderShown;
+        private bool callInitialized;
         private int callCount;
 
         private void Awake()
@@ -54,6 +58,11 @@ namespace ObituaryTomorrow.UI
             if (playerManager == null)
             {
                 playerManager = FindFirstObjectByType<PlayerManager>();
+            }
+
+            if (callCounterSystem == null)
+            {
+                callCounterSystem = FindFirstObjectByType<CallCounterSystem>();
             }
         }
 
@@ -83,8 +92,44 @@ namespace ObituaryTomorrow.UI
 
         private void Start()
         {
-            callCount = 0;
-            delayReminderShown = false;
+            if (autoStartOnStart)
+            {
+                BeginCall(true);
+            }
+        }
+
+        public void ConfigureForMainRoom(
+            PlayerManager sourcePlayerManager,
+            CallCounterSystem sourceCallCounterSystem,
+            TextMeshProUGUI npcText,
+            TextMeshProUGUI dialogueText,
+            TextMeshProUGUI hudText,
+            TextMeshProUGUI resultText,
+            Transform choicesRoot,
+            Button choicePrefab,
+            Button returnButton)
+        {
+            autoStartOnStart = false;
+            playerManager = sourcePlayerManager != null ? sourcePlayerManager : playerManager;
+            callCounterSystem = sourceCallCounterSystem != null ? sourceCallCounterSystem : callCounterSystem;
+            textNpc = npcText != null ? npcText : textNpc;
+            textDialogue = dialogueText != null ? dialogueText : textDialogue;
+            textHud = hudText != null ? hudText : textHud;
+            textResult = resultText != null ? resultText : textResult;
+            groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
+            choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
+            buttonReturnMainRoom = returnButton != null ? returnButton : buttonReturnMainRoom;
+        }
+
+        public void BeginCall(bool resetCounter)
+        {
+            if (resetCounter || !callInitialized)
+            {
+                callCount = 0;
+                delayReminderShown = false;
+            }
+
+            callInitialized = true;
             EnsureReadableChineseFont();
             Resources.Load("ArticyDatabase");
 
@@ -137,9 +182,17 @@ namespace ObituaryTomorrow.UI
 
         private void BuildArticyChoices()
         {
-            if (groupChoiceButtons == null || choiceButtonPrefab == null)
+            if (groupChoiceButtons == null)
             {
-                Debug.LogWarning("Choice button group or prefab is missing.");
+                Debug.LogWarning("Choice button group is missing.");
+                return;
+            }
+
+            EnsureChoiceButtonPrefab();
+
+            if (choiceButtonPrefab == null)
+            {
+                Debug.LogWarning("Choice button prefab is missing.");
                 return;
             }
 
@@ -174,6 +227,48 @@ namespace ObituaryTomorrow.UI
             }
         }
 
+        private void EnsureChoiceButtonPrefab()
+        {
+            if (choiceButtonPrefab != null || groupChoiceButtons == null)
+            {
+                return;
+            }
+
+            choiceButtonPrefab = groupChoiceButtons.GetComponentInChildren<Button>(true);
+
+            if (choiceButtonPrefab != null)
+            {
+                return;
+            }
+
+            GameObject buttonObject = new GameObject("Button_ArticyChoiceTemplate", typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(groupChoiceButtons, false);
+            buttonObject.SetActive(false);
+
+            RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+            buttonRect.sizeDelta = new Vector2(520f, 64f);
+
+            Image buttonImage = buttonObject.GetComponent<Image>();
+            buttonImage.color = new Color(0.08f, 0.075f, 0.055f, 0.92f);
+
+            GameObject textObject = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            textObject.transform.SetParent(buttonObject.transform, false);
+
+            RectTransform textRect = textObject.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(16f, 8f);
+            textRect.offsetMax = new Vector2(-16f, -8f);
+
+            TextMeshProUGUI buttonText = textObject.GetComponent<TextMeshProUGUI>();
+            buttonText.fontSize = 24f;
+            buttonText.alignment = TextAlignmentOptions.Center;
+            buttonText.color = Color.white;
+            buttonText.enableWordWrapping = true;
+            ApplyRuntimeFont(buttonText);
+
+            choiceButtonPrefab = buttonObject.GetComponent<Button>();
+        }
         private void CreateChoice(DialogueFragment fragment, string label)
         {
             Button button = Instantiate(choiceButtonPrefab, groupChoiceButtons);
@@ -229,6 +324,12 @@ namespace ObituaryTomorrow.UI
 
         private void RegisterPlayerSpeech(string sourceId)
         {
+            if (callCounterSystem != null)
+            {
+                callCount = callCounterSystem.RegisterPlayerLine(sourceId);
+                return;
+            }
+
             callCount++;
 
             if (StressMilestone > 0 && callCount % StressMilestone == 0)
@@ -283,7 +384,7 @@ namespace ObituaryTomorrow.UI
         }
         private void CheckGreyboxResult()
         {
-            if (callCount >= DelayTargetCount)
+            if (callCount >= GetDelayTargetCount())
             {
                 ShowDelayReminder();
             }
@@ -297,7 +398,7 @@ namespace ObituaryTomorrow.UI
             }
 
             delayReminderShown = true;
-            string message = $"已达到 {DelayTargetCount} 次通话计数，拖延阈值已达成。";
+            string message = $"已达到 {GetDelayTargetCount()} 次通话计数，拖延阈值已达成。";
 
             if (textResult != null)
             {
@@ -336,7 +437,12 @@ namespace ObituaryTomorrow.UI
             int maxStress = playerData != null ? playerData.MaxStress : 5;
             int cigaretteCount = playerData != null ? playerData.CigaretteCount : 5;
 
-            textHud.text = $"压力：{currentStress}/{maxStress} | 香烟：{cigaretteCount} | 通话计数：{callCount}/{DelayTargetCount}";
+            textHud.text = $"压力：{currentStress}/{maxStress} | 香烟：{cigaretteCount} | 通话计数：{callCount}/{GetDelayTargetCount()}";
+        }
+
+        private int GetDelayTargetCount()
+        {
+            return callCounterSystem != null ? callCounterSystem.DelayTargetCount : DelayTargetCount;
         }
 
         private void EnsureReadableChineseFont()
