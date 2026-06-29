@@ -49,6 +49,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private TextMeshProUGUI textDialogue;
         [SerializeField] private TextMeshProUGUI textHud;
         [SerializeField] private TextMeshProUGUI textResult;
+        [SerializeField] private TextMeshProUGUI textDiceResult;
 
         [Header("Choices")]
         [SerializeField] private Transform groupChoiceButtons;
@@ -63,6 +64,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject[] rightDiceFaceObjects;
 
         private readonly List<Button> spawnedChoiceButtons = new List<Button>();
+        private readonly HashSet<ulong> completedDiceCheckIds = new HashSet<ulong>();
         private TMP_FontAsset runtimeChineseFont;
         private DialogueFragment currentFragment;
         private bool delayReminderShown;
@@ -140,6 +142,7 @@ namespace ObituaryTomorrow.UI
             textDialogue = dialogueText != null ? dialogueText : textDialogue;
             textHud = hudText != null ? hudText : textHud;
             textResult = resultText != null ? resultText : textResult;
+            textDiceResult = textDiceResult != null ? textDiceResult : FindComponentByObjectName<TextMeshProUGUI>("DiceResult");
             groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
             choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
             buttonReturnMainRoom = returnButton != null ? returnButton : buttonReturnMainRoom;
@@ -156,6 +159,7 @@ namespace ObituaryTomorrow.UI
             {
                 callCount = 0;
                 delayReminderShown = false;
+                completedDiceCheckIds.Clear();
             }
 
             callInitialized = true;
@@ -317,11 +321,13 @@ namespace ObituaryTomorrow.UI
 
             List<ArticyObject> nextTargets = GetNextPlayableTargets(currentFragment);
 
-            if (!isResolvingDiceCheck && nextTargets.Count == 1 && nextTargets[0] is FlowFragment singleCheck && IsDiceCheckNode(singleCheck))
+            if (!isResolvingDiceCheck && TryGetPendingDiceCheck(nextTargets, out FlowFragment pendingCheck))
             {
-                StartDiceCheck(singleCheck, false);
+                StartDiceCheck(pendingCheck, false);
                 return;
             }
+
+            nextTargets.RemoveAll(IsDiceCheckNode);
 
             int visibleCount = Mathf.Min(nextTargets.Count, Mathf.Max(1, maxChoiceCount));
 
@@ -544,12 +550,20 @@ namespace ObituaryTomorrow.UI
             isResolvingDiceCheck = true;
             ClearChoiceButtons();
 
+            completedDiceCheckIds.Add(checkNode.Id);
             DiceCheckConfig checkConfig = CreateDiceCheckConfig(checkNode);
-            SetText(textResult, string.Format("\u5224\u5b9a\uff1a{0} / \u96be\u5ea6 {1}", checkConfig.Label, checkConfig.Difficulty));
+            string pendingText = string.Format("\u5224\u5b9a\uff1a{0} / \u96be\u5ea6 {1}", checkConfig.Label, checkConfig.Difficulty);
+            SetText(textResult, pendingText);
+            SetText(textDiceResult, pendingText);
 
             if (textResult != null)
             {
                 textResult.gameObject.SetActive(true);
+            }
+
+            if (textDiceResult != null)
+            {
+                textDiceResult.gameObject.SetActive(true);
             }
 
             DiceResult diceResult = diceSystem != null
@@ -562,7 +576,11 @@ namespace ObituaryTomorrow.UI
             string resultText = diceSystem != null
                 ? FormatDiceResultText(diceResult, branchResult.ConditionLabel)
                 : "\u9ab0\u5b50\u7cfb\u7edf\u7f3a\u5931\uff0c\u5df2\u6309\u901a\u8fc7\u5904\u7406\u3002";
+            string diceResultText = diceSystem != null
+                ? FormatDiceResultConditionText(diceResult, branchResult.ConditionLabel)
+                : FormatDiceResultConditionText(diceResult, branchResult.ConditionLabel);
             SetText(textResult, resultText);
+            SetText(textDiceResult, diceResultText);
 
             ArticyObject resultTarget = branchResult.Target;
             isResolvingDiceCheck = false;
@@ -612,6 +630,12 @@ namespace ObituaryTomorrow.UI
             {
                 rightDiceFaceObjects = FindDiceFaceObjects("Right");
             }
+        }
+
+        private static T FindComponentByObjectName<T>(string objectName) where T : Component
+        {
+            Transform transform = FindTransformByName(objectName);
+            return transform != null ? transform.GetComponent<T>() : null;
         }
 
         private static GameObject[] FindDiceFaceObjects(string parentName)
@@ -695,6 +719,12 @@ namespace ObituaryTomorrow.UI
             }
 
             return string.Format("{0}\n\u8fdb\u5165\u6761\u4ef6\uff1a{1}", resultText, conditionLabel);
+        }
+
+        private static string FormatDiceResultConditionText(DiceResult result, string conditionLabel)
+        {
+            string state = result.Success ? "\u6210\u529f" : "\u5931\u8d25";
+            return string.Format("{0}\u68c0\u5b9a{1}", GetAttributeDisplayName(result.AttributeType), state);
         }
 
         private static string GetAttributeDisplayName(PlayerAttributeType attributeType)
@@ -855,6 +885,7 @@ namespace ObituaryTomorrow.UI
             ApplyRuntimeFont(textDialogue);
             ApplyRuntimeFont(textHud);
             ApplyRuntimeFont(textResult);
+            ApplyRuntimeFont(textDiceResult);
 
             foreach (TextMeshProUGUI text in GetComponentsInChildren<TextMeshProUGUI>(true))
             {
@@ -1006,6 +1037,211 @@ namespace ObituaryTomorrow.UI
 
             AddOutputPinTargets(fragment.OutputPins, targets, new HashSet<ulong>());
             return targets;
+        }
+
+        private bool TryGetPendingDiceCheck(List<ArticyObject> targets, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (targets == null)
+            {
+                return false;
+            }
+
+            foreach (ArticyObject target in targets)
+            {
+                if (target is FlowFragment flowFragment && IsDiceCheckNode(flowFragment) && !completedDiceCheckIds.Contains(flowFragment.Id))
+                {
+                    checkNode = flowFragment;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetConditionDiceCheckTarget(DialogueFragment fragment, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (fragment == null || fragment.OutputPins == null)
+            {
+                return false;
+            }
+
+            foreach (OutputPin outputPin in fragment.OutputPins)
+            {
+                if (outputPin == null || outputPin.Connections == null)
+                {
+                    continue;
+                }
+
+                foreach (OutgoingConnection connection in outputPin.Connections)
+                {
+                    if (connection == null || connection.Target == null)
+                    {
+                        continue;
+                    }
+
+                    if (TryFindConditionDiceCheckTarget(connection.Target, new HashSet<ulong>(), out checkNode))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryFindConditionDiceCheckTarget(ArticyObject target, HashSet<ulong> visitedIds, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (target == null || !visitedIds.Add(target.Id))
+            {
+                return false;
+            }
+
+            if (target is FlowFragment flowFragment && IsDiceCheckNode(flowFragment))
+            {
+                return false;
+            }
+
+            if (target is Condition condition)
+            {
+                return TryFindDiceCheckInOutputs(condition.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Hub hub)
+            {
+                return TryFindConditionDiceCheckInOutputs(hub.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Instruction instruction)
+            {
+                return TryFindConditionDiceCheckInOutputs(instruction.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is FlowFragment flow)
+            {
+                return TryFindConditionDiceCheckInOutputs(flow.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Jump jump)
+            {
+                return TryFindConditionDiceCheckTarget(jump.Target, visitedIds, out checkNode);
+            }
+
+            return false;
+        }
+
+        private static bool TryFindConditionDiceCheckInOutputs(List<OutputPin> outputPins, HashSet<ulong> visitedIds, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (outputPins == null)
+            {
+                return false;
+            }
+
+            foreach (OutputPin outputPin in outputPins)
+            {
+                if (outputPin == null || outputPin.Connections == null)
+                {
+                    continue;
+                }
+
+                foreach (OutgoingConnection connection in outputPin.Connections)
+                {
+                    if (connection == null || connection.Target == null)
+                    {
+                        continue;
+                    }
+
+                    if (TryFindConditionDiceCheckTarget(connection.Target, visitedIds, out checkNode))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryFindDiceCheckInOutputs(List<OutputPin> outputPins, HashSet<ulong> visitedIds, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (outputPins == null)
+            {
+                return false;
+            }
+
+            foreach (OutputPin outputPin in outputPins)
+            {
+                if (outputPin == null || outputPin.Connections == null)
+                {
+                    continue;
+                }
+
+                foreach (OutgoingConnection connection in outputPin.Connections)
+                {
+                    if (connection == null || connection.Target == null)
+                    {
+                        continue;
+                    }
+
+                    if (TryFindDiceCheckTarget(connection.Target, visitedIds, out checkNode))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryFindDiceCheckTarget(ArticyObject target, HashSet<ulong> visitedIds, out FlowFragment checkNode)
+        {
+            checkNode = null;
+
+            if (target == null || !visitedIds.Add(target.Id))
+            {
+                return false;
+            }
+
+            if (target is FlowFragment flowFragment && IsDiceCheckNode(flowFragment))
+            {
+                checkNode = flowFragment;
+                return true;
+            }
+
+            if (target is Jump jump)
+            {
+                return TryFindDiceCheckTarget(jump.Target, visitedIds, out checkNode);
+            }
+
+            if (target is FlowFragment flow)
+            {
+                return TryFindDiceCheckInOutputs(flow.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Hub hub)
+            {
+                return TryFindDiceCheckInOutputs(hub.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Condition condition)
+            {
+                return TryFindDiceCheckInOutputs(condition.OutputPins, visitedIds, out checkNode);
+            }
+
+            if (target is Instruction instruction)
+            {
+                return TryFindDiceCheckInOutputs(instruction.OutputPins, visitedIds, out checkNode);
+            }
+
+            return false;
         }
 
         private static void AddOutputPinTargets(List<OutputPin> outputPins, List<ArticyObject> targets, HashSet<ulong> visitedIds)
