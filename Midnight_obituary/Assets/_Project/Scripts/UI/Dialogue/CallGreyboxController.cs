@@ -46,6 +46,7 @@ namespace ObituaryTomorrow.UI
 
         [Header("Texts")]
         [SerializeField] private TextMeshProUGUI textNpc;
+        [SerializeField] private Image imageNpcPortrait;
         [SerializeField] private TextMeshProUGUI textDialogue;
         [SerializeField] private TextMeshProUGUI textHud;
         [SerializeField] private TextMeshProUGUI textResult;
@@ -128,6 +129,7 @@ namespace ObituaryTomorrow.UI
             PlayerManager sourcePlayerManager,
             CallCounterSystem sourceCallCounterSystem,
             TextMeshProUGUI npcText,
+            Image npcPortraitImage,
             TextMeshProUGUI dialogueText,
             TextMeshProUGUI hudText,
             TextMeshProUGUI resultText,
@@ -139,10 +141,12 @@ namespace ObituaryTomorrow.UI
             playerManager = sourcePlayerManager != null ? sourcePlayerManager : playerManager;
             callCounterSystem = sourceCallCounterSystem != null ? sourceCallCounterSystem : callCounterSystem;
             textNpc = npcText != null ? npcText : textNpc;
+            imageNpcPortrait = npcPortraitImage != null ? npcPortraitImage : imageNpcPortrait;
             textDialogue = dialogueText != null ? dialogueText : textDialogue;
             textHud = hudText != null ? hudText : textHud;
             textResult = resultText != null ? resultText : textResult;
             textDiceResult = textDiceResult != null ? textDiceResult : FindComponentByObjectName<TextMeshProUGUI>("DiceResult");
+            imageNpcPortrait = imageNpcPortrait != null ? imageNpcPortrait : FindComponentByObjectName<Image>("Image_NpcPortrait");
             groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
             choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
             buttonReturnMainRoom = returnButton != null ? returnButton : buttonReturnMainRoom;
@@ -167,8 +171,8 @@ namespace ObituaryTomorrow.UI
             Resources.Load("ArticyDatabase");
 
             currentFragment = FindOpeningFragment();
-            SetText(textNpc, GetNpcLabel());
-            SetText(textDialogue, currentFragment != null ? GetNormalizedArticyText(currentFragment) : "呼叫中......");
+            RefreshNpcPresentation(currentFragment);
+            SetText(textDialogue, currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
 
             if (textResult != null)
             {
@@ -186,6 +190,85 @@ namespace ObituaryTomorrow.UI
                 : "NPC_Lena_001";
 
             return NormalizeDisplayText($"{npcId} [Articy]");
+        }
+
+        private void RefreshNpcPresentation(DialogueFragment fragment)
+        {
+            ArticyObject speaker = GetFragmentSpeaker(fragment);
+            string speakerName = GetSpeakerDisplayName(speaker);
+
+            if (string.IsNullOrWhiteSpace(speakerName))
+            {
+                speakerName = GetNpcLabel();
+            }
+
+            SetText(textNpc, speakerName);
+
+            Sprite portraitSprite = GetPreviewSprite(speaker);
+            if (portraitSprite == null)
+            {
+                portraitSprite = GetPreviewSprite(fragment);
+            }
+
+            SetNpcPortrait(portraitSprite);
+        }
+
+        private static ArticyObject GetFragmentSpeaker(DialogueFragment fragment)
+        {
+            if (fragment == null)
+            {
+                return null;
+            }
+
+            return fragment.Speaker;
+        }
+
+        private static string GetSpeakerDisplayName(ArticyObject speaker)
+        {
+            if (speaker == null)
+            {
+                return string.Empty;
+            }
+
+            if (speaker is IObjectWithFeaturecharacter_info objectWithCharacterInfo)
+            {
+                string cardName = NormalizeDisplayText(objectWithCharacterInfo.GetFeaturecharacter_info()?.name);
+                if (!string.IsNullOrWhiteSpace(cardName))
+                {
+                    return cardName;
+                }
+            }
+
+            string displayName = GetDisplayName(speaker);
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                return displayName;
+            }
+
+            return NormalizeDisplayText(speaker.TechnicalName);
+        }
+
+        private static Sprite GetPreviewSprite(ArticyObject articyObject)
+        {
+            if (!(articyObject is IObjectWithPreviewImage objectWithPreviewImage) || objectWithPreviewImage.PreviewImage == null)
+            {
+                return null;
+            }
+
+            IAsset articyAsset = objectWithPreviewImage.PreviewImage.Asset;
+            return articyAsset != null ? articyAsset.LoadAssetAsSprite() : null;
+        }
+
+        private void SetNpcPortrait(Sprite portraitSprite)
+        {
+            if (imageNpcPortrait == null)
+            {
+                return;
+            }
+
+            imageNpcPortrait.sprite = portraitSprite;
+            imageNpcPortrait.enabled = portraitSprite != null;
+            imageNpcPortrait.preserveAspect = true;
         }
 
         private DialogueFragment FindOpeningFragment()
@@ -334,12 +417,7 @@ namespace ObituaryTomorrow.UI
             for (int i = 0; i < visibleCount; i++)
             {
                 ArticyObject target = nextTargets[i];
-                string label = GetChoiceLabel(target);
-
-                if (string.IsNullOrWhiteSpace(label) && nextTargets.Count == 1)
-                {
-                    label = "\u7ee7\u7eed\u901a\u8bdd";
-                }
+                string label = GetChoiceButtonLabel(target);
 
                 CreateChoice(target, label);
             }
@@ -511,7 +589,8 @@ namespace ObituaryTomorrow.UI
             if (target is DialogueFragment fragment)
             {
                 currentFragment = fragment;
-                SetText(textDialogue, GetNormalizedArticyText(fragment));
+                RefreshNpcPresentation(currentFragment);
+                SetText(textDialogue, GetDialogueLineText(fragment));
                 RefreshHud();
                 BuildArticyChoices();
                 CheckGreyboxResult();
@@ -827,7 +906,7 @@ namespace ObituaryTomorrow.UI
             }
 
             delayReminderShown = true;
-            string message = $"已达到 {GetDelayTargetCount()} 次通话计数，拖延阈值已达成。";
+            string message = $"\u5df2\u8fbe\u5230 {GetDelayTargetCount()} \u6b21\u901a\u8bdd\u8ba1\u6570\uff0c\u62d6\u5ef6\u9608\u503c\u5df2\u8fbe\u6210\u3002";
 
             if (textResult != null)
             {
@@ -866,7 +945,7 @@ namespace ObituaryTomorrow.UI
             int maxStress = playerData != null ? playerData.MaxStress : 5;
             int cigaretteCount = playerData != null ? playerData.CigaretteCount : 5;
 
-            textHud.text = $"压力：{currentStress}/{maxStress} | 香烟：{cigaretteCount} | 通话计数：{callCount}/{GetDelayTargetCount()}";
+            textHud.text = $"\u538b\u529b\uff1a{currentStress}/{maxStress} | \u9999\u70df\uff1a{cigaretteCount} | \u901a\u8bdd\u8ba1\u6570\uff1a{callCount}/{GetDelayTargetCount()}";
         }
 
         private int GetDelayTargetCount()
@@ -916,7 +995,7 @@ namespace ObituaryTomorrow.UI
                 "Arial Unicode MS"
             };
 
-            const string probeText = "呼叫中继续通话结束压力香烟计数你仍旧坐在那把陈旧的扶手椅之中城市夜色铜绞线网络";
+            const string probeText = "\u547c\u53eb\u4e2d\u7ee7\u7eed\u901a\u8bdd\u7ed3\u675f\u538b\u529b\u9999\u70df\u8ba1\u6570\u4f60\u4ecd\u65e7\u5750\u5728\u90a3\u628a\u9648\u65e7\u7684\u6276\u624b\u6905\u4e4b\u4e2d\u57ce\u5e02\u591c\u8272\u94dc\u7ede\u7ebf\u7f51\u7edc";
 
             foreach (string fontName in fontNames)
             {
@@ -935,11 +1014,11 @@ namespace ObituaryTomorrow.UI
         private static TMP_FontAsset TryCreateProjectFontAsset()
         {
 #if UNITY_EDITOR
-            const string probeText = "呼叫中继续通话结束压力香烟计数你仍旧坐在那把陈旧的扶手椅之中城市夜色铜绞线网络";
+            const string probeText = "\u547c\u53eb\u4e2d\u7ee7\u7eed\u901a\u8bdd\u7ed3\u675f\u538b\u529b\u9999\u70df\u8ba1\u6570\u4f60\u4ecd\u65e7\u5750\u5728\u90a3\u628a\u9648\u65e7\u7684\u6276\u624b\u6905\u4e4b\u4e2d\u57ce\u5e02\u591c\u8272\u94dc\u7ede\u7ebf\u7f51\u7edc";
             string[] assetPaths =
             {
                 "Assets/_Project/Art/Fonts/WenQuanyi Micro Hei.ttf",
-                "Assets/_Project/Art/Fonts/迫真打字油印體.ttf"
+                "Assets/_Project/Art/Fonts/\u8feb\u771f\u6253\u5b57\u6cb9\u5370\u9ad4.ttf"
             };
 
             foreach (string assetPath in assetPaths)
@@ -1716,29 +1795,34 @@ namespace ObituaryTomorrow.UI
 
             if (articyObject is DialogueFragment fragment)
             {
-                string menuLabel = NormalizeDisplayText(fragment.MenuText);
-
-                if (!string.IsNullOrWhiteSpace(menuLabel))
-                {
-                    return menuLabel;
-                }
+                return NormalizeDisplayText(fragment.MenuText);
             }
 
-            string displayName = GetDisplayName(articyObject);
+            return string.Empty;
+        }
 
-            if (!string.IsNullOrWhiteSpace(displayName))
-            {
-                return displayName;
-            }
+        private static string GetChoiceButtonLabel(ArticyObject articyObject)
+        {
+            string label = GetChoiceLabel(articyObject);
+            return string.IsNullOrWhiteSpace(label) ? "\u7ee7\u7eed" : label;
+        }
 
-            string text = FitChoiceLabel(GetArticyText(articyObject));
+        private static string GetDialogueLineText(DialogueFragment fragment)
+        {
+            string text = GetNormalizedArticyText(fragment);
 
-            if (!string.IsNullOrWhiteSpace(text))
+            if (fragment == null || string.IsNullOrWhiteSpace(text))
             {
                 return text;
             }
 
-            return NormalizeDisplayText(articyObject.TechnicalName);
+            string speakerName = GetSpeakerDisplayName(GetFragmentSpeaker(fragment));
+            if (string.IsNullOrWhiteSpace(speakerName))
+            {
+                return text;
+            }
+
+            return $"{speakerName}\uff1a{text}";
         }
 
         private static string GetNormalizedArticyText(object articyObject)
@@ -1856,11 +1940,11 @@ namespace ObituaryTomorrow.UI
 
             foreach (char character in text)
             {
-                if (character == '�' || character == '□')
+                if (character == '\uFFFD' || character == '\u25A1')
                 {
                     score += 3;
                 }
-                else if ("氓盲莽脙脗鍛煎彨涓閫氳瘽璁℃暟棣欑儫鍘嬪姏".IndexOf(character) >= 0)
+                else if ("\u6C13\u76F2\u83BD\u8119\u8117\u935B\u714E\u5F68\u95AB\u763D".IndexOf(character) >= 0)
                 {
                     score++;
                 }
@@ -1871,17 +1955,17 @@ namespace ObituaryTomorrow.UI
 
         private static bool LooksLikeMojibake(string text)
         {
-            return text.IndexOf('氓') >= 0
-                || text.IndexOf('盲') >= 0
-                || text.IndexOf('莽') >= 0
-                || text.IndexOf('脙') >= 0
-                || text.IndexOf('脗') >= 0
-                || text.IndexOf('鍛') >= 0
-                || text.IndexOf('煎') >= 0
-                || text.IndexOf('彨') >= 0
-                || text.IndexOf('閫') >= 0
-                || text.IndexOf('瘽') >= 0
-                || text.IndexOf('□') >= 0;
+            return text.IndexOf('\u6C13') >= 0
+                || text.IndexOf('\u76F2') >= 0
+                || text.IndexOf('\u83BD') >= 0
+                || text.IndexOf('\u8119') >= 0
+                || text.IndexOf('\u8117') >= 0
+                || text.IndexOf('\u935B') >= 0
+                || text.IndexOf('\u714E') >= 0
+                || text.IndexOf('\u5F68') >= 0
+                || text.IndexOf('\u95AB') >= 0
+                || text.IndexOf('\u763D') >= 0
+                || text.IndexOf('\u25A1') >= 0;
         }
 
         private static string FitChoiceLabel(string label)

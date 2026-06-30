@@ -20,35 +20,14 @@ namespace Articy.ArticyProject.GlobalVariables
     
     
     [Serializable()]
-    public class chapterjudith : IArticyNamespace
+    public class edward : IArticyNamespace
     {
         
         [SerializeField()]
         private BaseGlobalVariables _VariableStorage;
         
-        public string calling_her_by
-        {
-            get
-            {
-                return _VariableStorage.Internal_GetVariableValueString(0, true);
-            }
-            set
-            {
-                _VariableStorage.Internal_SetVariableValueString(0, value);
-            }
-        }
-        
-        // 称呼她翰莱太太还是朱迪丝
-        public string Unresolved_calling_her_by
-        {
-            get
-            {
-                return _VariableStorage.Internal_GetVariableValueString(0, false);
-            }
-        }
-        
-        // 开场逻辑已检定
-        public bool logic_checked
+        // 你介绍自己是秘书
+        public bool you_are_secretary
         {
             get
             {
@@ -60,8 +39,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 开场感知已检定
-        public bool feeling_checked
+        // 你介绍自己是销售员
+        public bool you_are_sales
         {
             get
             {
@@ -73,8 +52,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 意识到朱迪丝对这个世界的愤怒
-        public bool realized_her_anger
+        // 你介绍自己是城市传奇
+        public bool you_are_the_legend
         {
             get
             {
@@ -86,8 +65,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 可以告诉朱迪丝她是可靠的
-        public bool reliable_to_be_told
+        // 提到错误的道路
+        public bool the_wrong_path
         {
             get
             {
@@ -99,8 +78,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 晚间照护的问题被引出来
-        public bool takeing_care_danny
+        // 意识到少校的悔恨
+        public bool regret
         {
             get
             {
@@ -112,8 +91,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 告诉朱迪丝她很可靠
-        public bool you_are_reliable
+        // 谈过施密特
+        public bool schmidt
         {
             get
             {
@@ -125,8 +104,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 意识到新政策的不合理
-        public bool unreasonable_policy
+        // 谈论过菲尔
+        public bool talked_about_phil
         {
             get
             {
@@ -138,8 +117,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 告诉朱迪丝她应该获得帮助
-        public bool you_are_qualified
+        // 得知马克救过少校
+        public bool mark_saved_his_life
         {
             get
             {
@@ -151,8 +130,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 意识到姐姐可以帮忙在晚上照顾丹尼
-        public bool alice_can_help
+        // 意识到少校在说谎
+        public bool major_lied
         {
             get
             {
@@ -164,8 +143,8 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
-        // 让朱迪丝降低母职羞耻
-        public bool you_are_not_bad_ma
+        // 意识到菲尔是少校失落的原因
+        public bool phil_is_the_cause
         {
             get
             {
@@ -177,20 +156,117 @@ namespace Articy.ArticyProject.GlobalVariables
             }
         }
         
+        // 菲尔理解他
+        public bool phil_understands
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(10);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(10, value);
+            }
+        }
+        
+        // 懦夫的真正含义
+        public bool meaning_of_pussy
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(11);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(11, value);
+            }
+        }
+        
+        // 强韧已检定
+        public bool will_checked
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(12);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(12, value);
+            }
+        }
+        
+        // 真结局
+        public bool te
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(13);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(13, value);
+            }
+        }
+        
+        // 好结局
+        public bool he
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(14);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(14, value);
+            }
+        }
+        
+        // 普通结局
+        public bool ne
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(15);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(15, value);
+            }
+        }
+        
+        // 坏结局
+        public bool be
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(16);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(16, value);
+            }
+        }
+        
         public void RegisterVariables(BaseGlobalVariables aStorage)
         {
             _VariableStorage = aStorage;
-            aStorage.RegisterVariable("chapterjudith.calling_her_by", "");
-            aStorage.RegisterVariable("chapterjudith.logic_checked", false);
-            aStorage.RegisterVariable("chapterjudith.feeling_checked", false);
-            aStorage.RegisterVariable("chapterjudith.realized_her_anger", false);
-            aStorage.RegisterVariable("chapterjudith.reliable_to_be_told", false);
-            aStorage.RegisterVariable("chapterjudith.takeing_care_danny", false);
-            aStorage.RegisterVariable("chapterjudith.you_are_reliable", false);
-            aStorage.RegisterVariable("chapterjudith.unreasonable_policy", false);
-            aStorage.RegisterVariable("chapterjudith.you_are_qualified", false);
-            aStorage.RegisterVariable("chapterjudith.alice_can_help", false);
-            aStorage.RegisterVariable("chapterjudith.you_are_not_bad_ma", false);
+            aStorage.RegisterVariable("edward.you_are_secretary", false);
+            aStorage.RegisterVariable("edward.you_are_sales", false);
+            aStorage.RegisterVariable("edward.you_are_the_legend", false);
+            aStorage.RegisterVariable("edward.the_wrong_path", false);
+            aStorage.RegisterVariable("edward.regret", false);
+            aStorage.RegisterVariable("edward.schmidt", false);
+            aStorage.RegisterVariable("edward.talked_about_phil", false);
+            aStorage.RegisterVariable("edward.mark_saved_his_life", false);
+            aStorage.RegisterVariable("edward.major_lied", false);
+            aStorage.RegisterVariable("edward.phil_is_the_cause", false);
+            aStorage.RegisterVariable("edward.phil_understands", false);
+            aStorage.RegisterVariable("edward.meaning_of_pussy", false);
+            aStorage.RegisterVariable("edward.will_checked", false);
+            aStorage.RegisterVariable("edward.te", false);
+            aStorage.RegisterVariable("edward.he", false);
+            aStorage.RegisterVariable("edward.ne", false);
+            aStorage.RegisterVariable("edward.be", false);
         }
     }
 }

@@ -1,0 +1,19 @@
+<ProjectInfo Version="1">
+  <Signature>95D3C68BD04252777856686E53754BCA56FF1DA9D07D306572D4756CBBFB7F34</Signature>
+  <Content>
+    <Project Guid="3af8145f-396b-4407-812e-cf1e1f38f107">
+      <DisplayName Value="明日讣告"/>
+      <DetailName Value=""/>
+      <MainProjectGuid Value="1e189116-13c4-4292-bf06-f1e8c092eb08"/>
+      <IconType Value="0"/>
+      <IdProjectIcon Value="00000000-0000-0000-0000-000000000000"/>
+      <ScmProviderGuid Value="0745c2ee-abe3-451b-934e-7f597f56c0d7"/>
+      <ScmConfiguration Value=""/>
+      <CreationTimeStamp Value="639172658967447590"/>
+      <PartitionHash Value="7D1CDB84DA04C458FADEC0A15C23EC3BFABC513DEDF486EABD47E94F30EAEBF4"/>
+      <SaveFileVersion Value="60"/>
+      <ProjectType Value="0"/>
+      <IsOnlineProject Value="False"/>
+    </Project>
+  </Content>
+</ProjectInfo>

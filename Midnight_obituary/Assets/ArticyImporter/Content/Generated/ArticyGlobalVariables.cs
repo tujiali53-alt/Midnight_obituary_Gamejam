@@ -26,30 +26,36 @@ namespace Articy.ArticyProject.GlobalVariables
         
         [SerializeField()]
         [HideInInspector()]
-        private chapterjudith mChapterjudith = new chapterjudith();
+        private edward mEdward = new edward();
         
         #region Initialize static VariableName set
         static ArticyGlobalVariables()
         {
-            variableNames.Add("chapterjudith.calling_her_by");
-            variableNames.Add("chapterjudith.logic_checked");
-            variableNames.Add("chapterjudith.feeling_checked");
-            variableNames.Add("chapterjudith.realized_her_anger");
-            variableNames.Add("chapterjudith.reliable_to_be_told");
-            variableNames.Add("chapterjudith.takeing_care_danny");
-            variableNames.Add("chapterjudith.you_are_reliable");
-            variableNames.Add("chapterjudith.unreasonable_policy");
-            variableNames.Add("chapterjudith.you_are_qualified");
-            variableNames.Add("chapterjudith.alice_can_help");
-            variableNames.Add("chapterjudith.you_are_not_bad_ma");
+            variableNames.Add("edward.you_are_secretary");
+            variableNames.Add("edward.you_are_sales");
+            variableNames.Add("edward.you_are_the_legend");
+            variableNames.Add("edward.the_wrong_path");
+            variableNames.Add("edward.regret");
+            variableNames.Add("edward.schmidt");
+            variableNames.Add("edward.talked_about_phil");
+            variableNames.Add("edward.mark_saved_his_life");
+            variableNames.Add("edward.major_lied");
+            variableNames.Add("edward.phil_is_the_cause");
+            variableNames.Add("edward.phil_understands");
+            variableNames.Add("edward.meaning_of_pussy");
+            variableNames.Add("edward.will_checked");
+            variableNames.Add("edward.te");
+            variableNames.Add("edward.he");
+            variableNames.Add("edward.ne");
+            variableNames.Add("edward.be");
         }
         #endregion
         
-        public chapterjudith chapterjudith
+        public edward edward
         {
             get
             {
-                return mChapterjudith;
+                return mEdward;
             }
         }
         
@@ -63,7 +69,7 @@ namespace Articy.ArticyProject.GlobalVariables
         
         public override void Init()
         {
-            chapterjudith.RegisterVariables(this);
+            edward.RegisterVariables(this);
         }
         
         public static ArticyGlobalVariables CreateGlobalVariablesClone()

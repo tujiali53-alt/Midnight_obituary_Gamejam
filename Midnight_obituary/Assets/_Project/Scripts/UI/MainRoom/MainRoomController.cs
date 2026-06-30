@@ -296,6 +296,7 @@ namespace ObituaryTomorrow.UI
                 playerManager,
                 callCounterSystem,
                 textNpcName,
+                imageNpcPortrait,
                 textDialogue,
                 textHud,
                 textDice,
@@ -1172,7 +1173,7 @@ namespace ObituaryTomorrow.UI
             public string GetButtonLabel()
             {
                 return RequiresDice
-                    ? $"{label} [{attributeType} 闂傚倸鎳忛崕宕団偓?{difficulty}]"
+                    ? $"{label} [{attributeType} \u96be\u5ea6 {difficulty}]"
                     : label;
             }
         }

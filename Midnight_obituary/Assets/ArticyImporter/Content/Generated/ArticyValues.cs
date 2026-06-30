@@ -174,6 +174,33 @@ namespace Articy.ArticyProject
     
     
     [Serializable()]
+    public class ArticyValueconversation_tagTemplate : ArticyValue<Articy.ArticyProject.Templates.conversation_tagTemplate>
+    {
+    }
+}
+namespace Articy.ArticyProject
+{
+    
+    
+    [Serializable()]
+    public class ArticyValueconversation_tagFeature : ArticyValue<Articy.ArticyProject.Features.conversation_tagFeature>
+    {
+    }
+}
+namespace Articy.ArticyProject
+{
+    
+    
+    [Serializable()]
+    public class ArticyValueconversation_tag : ArticyValue<conversation_tag>
+    {
+    }
+}
+namespace Articy.ArticyProject
+{
+    
+    
+    [Serializable()]
     public class ArticyValueHub : ArticyValue<Hub>
     {
     }
