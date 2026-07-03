@@ -51,6 +51,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private TextMeshProUGUI textHud;
         [SerializeField] private TextMeshProUGUI textResult;
         [SerializeField] private TextMeshProUGUI textDiceResult;
+        [SerializeField] private ScrollRect dialogueScrollRect;
 
         [Header("Choices")]
         [SerializeField] private Transform groupChoiceButtons;
@@ -65,6 +66,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject[] rightDiceFaceObjects;
 
         private readonly List<Button> spawnedChoiceButtons = new List<Button>();
+        private readonly StringBuilder dialogueHistory = new StringBuilder();
         private readonly HashSet<ulong> completedDiceCheckIds = new HashSet<ulong>();
         private TMP_FontAsset runtimeChineseFont;
         private DialogueFragment currentFragment;
@@ -168,11 +170,13 @@ namespace ObituaryTomorrow.UI
 
             callInitialized = true;
             EnsureReadableChineseFont();
+            EnsureDialogueScrollView();
             Resources.Load("ArticyDatabase");
 
             currentFragment = FindOpeningFragment();
             RefreshNpcPresentation(currentFragment);
-            SetText(textDialogue, currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
+            ResetDialogueHistory();
+            AppendDialogueLine(currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
 
             if (textResult != null)
             {
@@ -181,6 +185,267 @@ namespace ObituaryTomorrow.UI
 
             RefreshHud();
             BuildArticyChoices();
+        }
+
+        public ulong GetCurrentArticyFragmentId()
+        {
+            return currentFragment != null ? currentFragment.Id : 0UL;
+        }
+
+        public int GetCurrentCallCount()
+        {
+            return callCounterSystem != null ? callCounterSystem.CurrentCount : callCount;
+        }
+
+        public bool GetDelayReminderShown()
+        {
+            return delayReminderShown;
+        }
+
+        public bool RestoreArticyState(ulong fragmentId, int restoredCallCount, bool restoredDelayReminderShown, string restoredDialogueHistory = null)
+        {
+            callCount = Mathf.Max(0, restoredCallCount);
+            delayReminderShown = restoredDelayReminderShown;
+            callInitialized = true;
+            EnsureReadableChineseFont();
+            EnsureDialogueScrollView();
+            Resources.Load("ArticyDatabase");
+
+            currentFragment = FindFragmentById(fragmentId);
+
+            if (currentFragment == null)
+            {
+                currentFragment = FindOpeningFragment();
+            }
+
+            RefreshNpcPresentation(currentFragment);
+            RestoreDialogueHistory(restoredDialogueHistory);
+
+            if (dialogueHistory.Length == 0)
+            {
+                AppendDialogueLine(currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
+            }
+
+            if (textResult != null && !delayReminderShown)
+            {
+                textResult.gameObject.SetActive(false);
+            }
+
+            RefreshHud();
+            BuildArticyChoices();
+            CheckGreyboxResult();
+            return currentFragment != null;
+        }
+
+        private static DialogueFragment FindFragmentById(ulong fragmentId)
+        {
+            if (fragmentId == 0UL)
+            {
+                return null;
+            }
+
+            Resources.Load("ArticyDatabase");
+
+            foreach (DialogueFragment fragment in ArticyDatabase.GetAllOfType<DialogueFragment>())
+            {
+                if (fragment != null && fragment.Id == fragmentId)
+                {
+                    return fragment;
+                }
+            }
+
+            return null;
+        }
+
+        public string GetDialogueHistory()
+        {
+            return dialogueHistory.ToString();
+        }
+
+        private void ResetDialogueHistory()
+        {
+            dialogueHistory.Clear();
+            RefreshDialogueHistoryText();
+        }
+
+        private void RestoreDialogueHistory(string restoredDialogueHistory)
+        {
+            dialogueHistory.Clear();
+
+            if (!string.IsNullOrWhiteSpace(restoredDialogueHistory))
+            {
+                dialogueHistory.Append(NormalizeDisplayText(restoredDialogueHistory));
+            }
+
+            RefreshDialogueHistoryText();
+        }
+
+        private void AppendDialogueLine(string line)
+        {
+            string normalized = NormalizeDisplayText(line);
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return;
+            }
+
+            if (dialogueHistory.Length > 0)
+            {
+                dialogueHistory.AppendLine();
+                dialogueHistory.AppendLine();
+            }
+
+            dialogueHistory.Append(normalized);
+            RefreshDialogueHistoryText();
+        }
+
+        private void AppendPlayerChoice(string label)
+        {
+            string normalized = NormalizeDisplayText(label).Replace("\n", " ");
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return;
+            }
+
+            AppendDialogueLine($"\u4f60\uff1a{normalized}");
+        }
+
+        private void RefreshDialogueHistoryText()
+        {
+            SetText(textDialogue, dialogueHistory.ToString());
+            ScrollDialogueToBottom();
+        }
+
+        private void ScrollDialogueToBottom()
+        {
+            if (dialogueScrollRect == null)
+            {
+                return;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            dialogueScrollRect.verticalNormalizedPosition = 0f;
+        }
+
+        private void EnsureDialogueScrollView()
+        {
+            if (textDialogue == null)
+            {
+                return;
+            }
+
+            if (dialogueScrollRect != null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            dialogueScrollRect = textDialogue.GetComponentInParent<ScrollRect>();
+
+            if (dialogueScrollRect != null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            RectTransform textRect = textDialogue.rectTransform;
+            RectTransform originalParent = textRect.parent as RectTransform;
+
+            if (originalParent == null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            int siblingIndex = textRect.GetSiblingIndex();
+            Vector2 anchorMin = textRect.anchorMin;
+            Vector2 anchorMax = textRect.anchorMax;
+            Vector2 anchoredPosition = textRect.anchoredPosition;
+            Vector2 sizeDelta = textRect.sizeDelta;
+            Vector2 pivot = textRect.pivot;
+
+            GameObject scrollObject = new GameObject("Scroll_DialogueHistory", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(ScrollRect));
+            scrollObject.transform.SetParent(originalParent, false);
+            scrollObject.transform.SetSiblingIndex(siblingIndex);
+
+            RectTransform scrollRectTransform = scrollObject.GetComponent<RectTransform>();
+            scrollRectTransform.anchorMin = anchorMin;
+            scrollRectTransform.anchorMax = anchorMax;
+            scrollRectTransform.anchoredPosition = anchoredPosition;
+            scrollRectTransform.sizeDelta = sizeDelta;
+            scrollRectTransform.pivot = pivot;
+
+            Image scrollImage = scrollObject.GetComponent<Image>();
+            scrollImage.color = new Color(0f, 0f, 0f, 0f);
+
+            GameObject viewportObject = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Mask));
+            viewportObject.transform.SetParent(scrollObject.transform, false);
+            RectTransform viewportRect = viewportObject.GetComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+            Image viewportImage = viewportObject.GetComponent<Image>();
+            viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+            viewportObject.GetComponent<Mask>().showMaskGraphic = false;
+
+            GameObject contentObject = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            contentObject.transform.SetParent(viewportObject.transform, false);
+            RectTransform contentRect = contentObject.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = Vector2.zero;
+
+            VerticalLayoutGroup layout = contentObject.GetComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            textDialogue.transform.SetParent(contentObject.transform, false);
+            dialogueScrollRect = scrollObject.GetComponent<ScrollRect>();
+            dialogueScrollRect.viewport = viewportRect;
+            dialogueScrollRect.content = contentRect;
+            dialogueScrollRect.horizontal = false;
+            dialogueScrollRect.vertical = true;
+            dialogueScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            dialogueScrollRect.scrollSensitivity = 28f;
+
+            ConfigureDialogueTextForScroll();
+        }
+
+        private void ConfigureDialogueTextForScroll()
+        {
+            if (textDialogue == null)
+            {
+                return;
+            }
+
+            RectTransform textRect = textDialogue.rectTransform;
+            textRect.anchorMin = new Vector2(0f, 1f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.pivot = new Vector2(0.5f, 1f);
+            textRect.anchoredPosition = Vector2.zero;
+            textRect.sizeDelta = new Vector2(0f, textRect.sizeDelta.y);
+            textDialogue.enableWordWrapping = true;
+            textDialogue.alignment = TextAlignmentOptions.TopLeft;
+
+            LayoutElement layoutElement = textDialogue.GetComponent<LayoutElement>();
+            if (layoutElement == null)
+            {
+                layoutElement = textDialogue.gameObject.AddComponent<LayoutElement>();
+            }
+
+            layoutElement.preferredWidth = -1f;
+            layoutElement.minHeight = 0f;
         }
 
         private string GetNpcLabel()
@@ -568,6 +833,7 @@ namespace ObituaryTomorrow.UI
 
         private void SelectChoice(ArticyObject target, string label)
         {
+            AppendPlayerChoice(label);
             RegisterPlayerSpeech(label);
             AdvanceToArticyTarget(target);
         }
@@ -590,7 +856,7 @@ namespace ObituaryTomorrow.UI
             {
                 currentFragment = fragment;
                 RefreshNpcPresentation(currentFragment);
-                SetText(textDialogue, GetDialogueLineText(fragment));
+                AppendDialogueLine(GetDialogueLineText(fragment));
                 RefreshHud();
                 BuildArticyChoices();
                 CheckGreyboxResult();
@@ -824,8 +1090,8 @@ namespace ObituaryTomorrow.UI
 
         private void SelectFallbackChoice(string label)
         {
+            AppendPlayerChoice(label);
             RegisterPlayerSpeech(label);
-            SetText(textDialogue, label);
             RefreshHud();
             CheckGreyboxResult();
         }
@@ -917,7 +1183,7 @@ namespace ObituaryTomorrow.UI
 
             if (textDialogue != null)
             {
-                textDialogue.text = $"{textDialogue.text}\n\n{message}";
+                AppendDialogueLine(message);
             }
         }
         private void ClearChoiceButtons()

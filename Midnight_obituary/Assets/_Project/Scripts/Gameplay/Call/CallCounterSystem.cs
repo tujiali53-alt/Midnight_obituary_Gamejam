@@ -50,6 +50,15 @@ namespace ObituaryTomorrow.Gameplay.Call
             return CurrentCount;
         }
 
+        public void RestoreState(string npcId, int currentCount)
+        {
+            int oldValue = CurrentCount;
+            CurrentNpcId = string.IsNullOrWhiteSpace(npcId) ? CurrentNpcId : npcId;
+            CurrentCount = Mathf.Max(0, currentCount);
+
+            GameEventBus.RaiseCallCounterChanged(
+                new CallCounterChangedEventArgs(CurrentNpcId, oldValue, CurrentCount, DelayTargetCount));
+        }
         public bool HasReachedDelayTarget()
         {
             return CurrentCount >= DelayTargetCount;

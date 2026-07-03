@@ -102,6 +102,37 @@ namespace ObituaryTomorrow.Gameplay.NPC
                 request.Reason);
         }
 
+        public void RestoreRuntimeData(
+            string npcId,
+            string displayName,
+            PersonalityTag personalityTag,
+            int breakdown,
+            int maxBreakdown,
+            int delayThreshold,
+            string dialogueId)
+        {
+            int oldValue = CurrentBreakdown;
+            string resolvedNpcId = string.IsNullOrWhiteSpace(npcId) ? defaultNpcId : npcId;
+            string resolvedDisplayName = string.IsNullOrWhiteSpace(displayName) ? defaultDisplayName : displayName;
+            string resolvedDialogueId = string.IsNullOrWhiteSpace(dialogueId) ? defaultDialogueId : dialogueId;
+
+            CurrentNPC = new NPCRuntimeData(
+                resolvedNpcId,
+                resolvedDisplayName,
+                personalityTag,
+                breakdown,
+                maxBreakdown,
+                delayThreshold,
+                resolvedDialogueId);
+
+            if (GameManager.Instance != null && GameManager.Instance.Session != null)
+            {
+                GameManager.Instance.Session.CurrentNpcId = CurrentNPC.NpcId;
+            }
+
+            GameEventBus.RaiseNPCBreakdownChanged(
+                new NPCBreakdownChangedEventArgs(CurrentNpcId, oldValue, CurrentBreakdown, MaxBreakdown, StatChangeReason.Debug));
+        }
         public bool IsBreakdownZero()
         {
             return CurrentBreakdown <= 0;

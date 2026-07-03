@@ -10,6 +10,7 @@ using ObituaryTomorrow.Gameplay.Dice;
 using ObituaryTomorrow.Gameplay.Ending;
 using ObituaryTomorrow.Gameplay.NPC;
 using ObituaryTomorrow.Gameplay.Player;
+using ObituaryTomorrow.Gameplay.Save;
 
 namespace ObituaryTomorrow.UI
 {
@@ -24,6 +25,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private DiceSystem diceSystem;
         [SerializeField] private CallCounterSystem callCounterSystem;
         [SerializeField] private EndingEvaluator endingEvaluator;
+        [SerializeField] private SaveManager saveManager;
         [SerializeField] private int requiredDeepRescueSuccesses = 3;
 
         [Header("Desk Buttons")]
@@ -33,6 +35,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private Button buttonOpenTaskBook;
         [SerializeField] private Button buttonOpenCard;
         [SerializeField] private Button buttonOpenAchievement;
+        [SerializeField] private Button buttonOpenSave;
         [SerializeField] private Button buttonDial;
         [SerializeField] private Button buttonDiceTest;
 
@@ -49,6 +52,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject panelTaskBook;
         [SerializeField] private GameObject panelCard;
         [SerializeField] private GameObject panelAchievement;
+        [SerializeField] private GameObject panelSave;
         [SerializeField] private GameObject panelResult;
 
         [Header("HUD Texts")]
@@ -57,6 +61,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private TextMeshProUGUI textYellowPages;
         [SerializeField] private TextMeshProUGUI textTaskBook;
         [SerializeField] private TextMeshProUGUI textAchievement;
+        [SerializeField] private TextMeshProUGUI textSaveStatus;
 
         [Header("Dialogue Area")]
         [SerializeField] private GameObject dialogueAreaRoot;
@@ -148,6 +153,7 @@ namespace ObituaryTomorrow.UI
             AddListener(buttonOpenTaskBook, OpenTaskBook);
             AddListener(buttonOpenCard, OpenCard);
             AddListener(buttonOpenAchievement, OpenAchievement);
+            AddListener(buttonOpenSave, OpenSave);
             AddListener(buttonDial, StartCall);
             AddListener(buttonDiceTest, RollDiceTest);
             AddListener(buttonConfirmMission, ConfirmMission);
@@ -167,6 +173,7 @@ namespace ObituaryTomorrow.UI
             RemoveListener(buttonOpenTaskBook, OpenTaskBook);
             RemoveListener(buttonOpenCard, OpenCard);
             RemoveListener(buttonOpenAchievement, OpenAchievement);
+            RemoveListener(buttonOpenSave, OpenSave);
             RemoveListener(buttonDial, StartCall);
             RemoveListener(buttonDiceTest, RollDiceTest);
             RemoveListener(buttonConfirmMission, ConfirmMission);
@@ -187,6 +194,61 @@ namespace ObituaryTomorrow.UI
             RefreshStaticTexts();
             RefreshHud();
             RefreshInteractableState();
+        }
+
+        public void SaveSlot1()
+        {
+            EnsureSaveManager().SaveSlot1();
+        }
+
+        public void SaveSlot2()
+        {
+            EnsureSaveManager().SaveSlot2();
+        }
+
+        public void SaveSlot3()
+        {
+            EnsureSaveManager().SaveSlot3();
+        }
+
+        public void LoadSlot1()
+        {
+            EnsureSaveManager().LoadSlot1();
+        }
+
+        public void LoadSlot2()
+        {
+            EnsureSaveManager().LoadSlot2();
+        }
+
+        public void LoadSlot3()
+        {
+            EnsureSaveManager().LoadSlot3();
+        }
+
+        public OperationResult SaveGameSlot(int slotIndex)
+        {
+            return EnsureSaveManager().SaveSlot(slotIndex);
+        }
+
+        public OperationResult LoadGameSlot(int slotIndex)
+        {
+            return EnsureSaveManager().LoadSlot(slotIndex);
+        }
+
+        private SaveManager EnsureSaveManager()
+        {
+            if (saveManager == null)
+            {
+                saveManager = FindFirstObjectByType<SaveManager>();
+            }
+
+            if (saveManager == null)
+            {
+                saveManager = gameObject.AddComponent<SaveManager>();
+            }
+
+            return saveManager;
         }
 
         private void OpenSettings()
@@ -223,6 +285,218 @@ namespace ObituaryTomorrow.UI
         private void OpenAchievement()
         {
             OpenPopup(panelAchievement, GameState.MainRoom);
+        }
+
+
+        private void OpenSave()
+        {
+            EnsureSavePanel();
+            RefreshSavePanel();
+            HideAllPopups();
+            SetPanelVisible(panelPopupRoot, true);
+            SetPanelVisible(panelSave, true);
+
+            if (!inCall)
+            {
+                GameManager.Instance?.ChangeState(GameState.MainRoom);
+            }
+        }
+
+        private void SaveToSlot(int slotIndex)
+        {
+            OperationResult result = SaveGameSlot(slotIndex);
+            SetText(textSaveStatus, result.Success ? "\u5b58\u6863\u6210\u529f" : result.Message);
+            RefreshSavePanel();
+        }
+
+        private void LoadFromSlot(int slotIndex)
+        {
+            OperationResult result = LoadGameSlot(slotIndex);
+            SetText(textSaveStatus, result.Success ? "\u8bfb\u6863\u6210\u529f" : result.Message);
+            RefreshRuntimeIndicators();
+            RefreshSavePanel();
+        }
+
+        private void RefreshSavePanel()
+        {
+            if (panelSave == null)
+            {
+                return;
+            }
+
+            SaveManager manager = EnsureSaveManager();
+            TextMeshProUGUI[] texts = panelSave.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+            for (int i = 0; i < texts.Length; i++)
+            {
+                TextMeshProUGUI text = texts[i];
+
+                if (text == null || !text.name.StartsWith("Text_SaveSlot_", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string suffix = text.name.Substring("Text_SaveSlot_".Length);
+                if (!int.TryParse(suffix, out int slotIndex))
+                {
+                    continue;
+                }
+
+                string state = manager.HasSlot(slotIndex) ? "\u5df2\u6709\u5b58\u6863" : "\u7a7a\u5b58\u6863";
+                text.text = string.Format("\u5b58\u6863 {0}  {1}", slotIndex, state);
+            }
+        }
+
+        private void EnsureSavePanel()
+        {
+            if (panelSave != null)
+            {
+                return;
+            }
+
+            AssignIfMissing(ref panelSave, FindGameObjectByName("Panel_Save"));
+
+            if (panelSave != null)
+            {
+                return;
+            }
+
+            EnsurePopupRoot();
+
+            if (panelPopupRoot == null)
+            {
+                Debug.LogWarning("Cannot create save panel because no popup root or canvas exists.");
+                return;
+            }
+
+            panelSave = CreateSavePanel(panelPopupRoot.transform);
+        }
+
+        private void EnsurePopupRoot()
+        {
+            if (panelPopupRoot != null)
+            {
+                return;
+            }
+
+            AssignIfMissing(ref panelPopupRoot, FindGameObjectByName("Panel_PopupRoot"));
+            AssignIfMissing(ref panelPopupRoot, FindGameObjectByName("Panel_PopUpRoot"));
+            AssignIfMissing(ref panelPopupRoot, FindGameObjectByName("Panel_Popup"));
+
+            if (panelPopupRoot != null)
+            {
+                return;
+            }
+
+            Canvas canvas = FindFirstObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                return;
+            }
+
+            panelPopupRoot = new GameObject("Panel_PopupRoot", typeof(RectTransform), typeof(CanvasRenderer));
+            RectTransform rectTransform = panelPopupRoot.GetComponent<RectTransform>();
+            panelPopupRoot.transform.SetParent(canvas.transform, false);
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+        }
+
+        private GameObject CreateSavePanel(Transform parent)
+        {
+            GameObject panel = new GameObject("Panel_Save", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            panel.transform.SetParent(parent, false);
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.sizeDelta = new Vector2(760f, 500f);
+            panelRect.anchoredPosition = Vector2.zero;
+
+            Image panelImage = panel.GetComponent<Image>();
+            panelImage.color = new Color(0.08f, 0.07f, 0.05f, 0.94f);
+
+            TextMeshProUGUI title = CreateRuntimeText(panel.transform, "Text_SaveTitle", "\u5b58\u6863", new Vector2(0f, 196f), new Vector2(640f, 54f), 34f, TextAlignmentOptions.Center);
+            title.fontStyle = FontStyles.Bold;
+
+            for (int i = 1; i <= 3; i++)
+            {
+                CreateSaveSlotRow(panel.transform, i, 118f - (i - 1) * 102f);
+            }
+
+            textSaveStatus = CreateRuntimeText(panel.transform, "Text_SaveStatus", string.Empty, new Vector2(0f, -178f), new Vector2(560f, 32f), 22f, TextAlignmentOptions.Center);
+            CreateRuntimeButton(panel.transform, "Button_SaveBack", "\u8fd4\u56de", new Vector2(0f, -224f), new Vector2(180f, 48f), ClosePopup);
+            panel.SetActive(false);
+            return panel;
+        }
+
+        private void CreateSaveSlotRow(Transform parent, int slotIndex, float y)
+        {
+            GameObject row = new GameObject($"SaveSlot_{slotIndex}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            row.transform.SetParent(parent, false);
+
+            RectTransform rowRect = row.GetComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rowRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rowRect.pivot = new Vector2(0.5f, 0.5f);
+            rowRect.sizeDelta = new Vector2(620f, 74f);
+            rowRect.anchoredPosition = new Vector2(0f, y);
+
+            Image rowImage = row.GetComponent<Image>();
+            rowImage.color = new Color(0.18f, 0.15f, 0.11f, 0.88f);
+
+            CreateRuntimeText(row.transform, $"Text_SaveSlot_{slotIndex}", string.Empty, new Vector2(-160f, 0f), new Vector2(260f, 48f), 24f, TextAlignmentOptions.Left);
+            int capturedSlotIndex = slotIndex;
+            CreateRuntimeButton(row.transform, $"Button_SaveSlot_{slotIndex}", "\u4fdd\u5b58", new Vector2(108f, 0f), new Vector2(112f, 44f), () => SaveToSlot(capturedSlotIndex));
+            CreateRuntimeButton(row.transform, $"Button_LoadSlot_{slotIndex}", "\u52a0\u8f7d", new Vector2(242f, 0f), new Vector2(112f, 44f), () => LoadFromSlot(capturedSlotIndex));
+        }
+
+        private static TextMeshProUGUI CreateRuntimeText(Transform parent, string objectName, string value, Vector2 position, Vector2 size, float fontSize, TextAlignmentOptions alignment)
+        {
+            GameObject textObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            textObject.transform.SetParent(parent, false);
+
+            RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.sizeDelta = size;
+            rectTransform.anchoredPosition = position;
+
+            TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+            text.text = value;
+            text.fontSize = fontSize;
+            text.alignment = alignment;
+            text.color = new Color(0.93f, 0.86f, 0.72f, 1f);
+            text.enableWordWrapping = false;
+            return text;
+        }
+
+        private static Button CreateRuntimeButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityEngine.Events.UnityAction action)
+        {
+            GameObject buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(parent, false);
+
+            RectTransform rectTransform = buttonObject.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.sizeDelta = size;
+            rectTransform.anchoredPosition = position;
+
+            Image image = buttonObject.GetComponent<Image>();
+            image.color = new Color(0.78f, 0.68f, 0.48f, 1f);
+
+            Button button = buttonObject.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(action);
+
+            TextMeshProUGUI buttonText = CreateRuntimeText(buttonObject.transform, "Text", label, Vector2.zero, size, 22f, TextAlignmentOptions.Center);
+            buttonText.color = new Color(0.08f, 0.07f, 0.05f, 1f);
+            buttonText.fontStyle = FontStyles.Bold;
+            return button;
         }
 
         private void ConfirmMission()
@@ -578,6 +852,7 @@ namespace ObituaryTomorrow.UI
             SetPanelVisible(panelTaskBook, false);
             SetPanelVisible(panelCard, false);
             SetPanelVisible(panelAchievement, false);
+            SetPanelVisible(panelSave, false);
             SetPanelVisible(panelResult, false);
         }
 
@@ -689,6 +964,11 @@ namespace ObituaryTomorrow.UI
             if (buttonOpenNewspaper != null)
             {
                 buttonOpenNewspaper.interactable = !inCall;
+            }
+
+            if (buttonOpenSave != null)
+            {
+                buttonOpenSave.interactable = true;
             }
 
             if (buttonOpenTaskBook != null)
@@ -930,10 +1210,13 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonOpenTaskBook, FindComponentByObjectName<Button>("Button_OpenTaskBook"));
             AssignIfMissing(ref buttonOpenCard, FindComponentByObjectName<Button>("Button_OpenCard"));
             AssignIfMissing(ref buttonOpenAchievement, FindComponentByObjectName<Button>("Button_OpenAchievement"));
+            AssignIfMissing(ref buttonOpenSave, FindOrAddButtonByObjectName("Button_OpenSave"));
             AssignIfMissing(ref buttonDial, FindComponentByObjectName<Button>("Button_Dial"));
             AssignIfMissing(ref buttonDiceTest, FindOrAddButtonByObjectName("DiceTest"));
 
             AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
+            AssignIfMissing(ref panelPopupRoot, FindGameObjectByName("Panel_PopupRoot"));
+            AssignIfMissing(ref panelSave, FindGameObjectByName("Panel_Save"));
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));
             AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcPortrait"));
             AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcCard"));
@@ -945,6 +1228,7 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref textDice, FindComponentByObjectName<TextMeshProUGUI>("Text_Dice"));
             AssignIfMissing(ref groupChoiceButtons, FindComponentByObjectName<Transform>("Group_ChoiceButtons"));
             AssignIfMissing(ref textDiceResult, FindComponentByObjectName<TextMeshProUGUI>("DiceResult"));
+            AssignIfMissing(ref textSaveStatus, FindComponentByObjectName<TextMeshProUGUI>("Text_SaveStatus"));
             AssignIfMissing(ref imageCounter, FindComponentByObjectName<Image>("CounterImage"));
             AssignIfMissing(ref imageStress, FindComponentByObjectName<Image>("StressImage"));
             AssignIfMissing(ref imagePerception, FindComponentByObjectName<Image>("PerceptionImage"));
