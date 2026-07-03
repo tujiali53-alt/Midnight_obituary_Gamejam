@@ -10,7 +10,6 @@ using ObituaryTomorrow.Gameplay.Dice;
 using ObituaryTomorrow.Gameplay.Ending;
 using ObituaryTomorrow.Gameplay.NPC;
 using ObituaryTomorrow.Gameplay.Player;
-using ObituaryTomorrow.Gameplay.Save;
 
 namespace ObituaryTomorrow.UI
 {
@@ -25,6 +24,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private DiceSystem diceSystem;
         [SerializeField] private CallCounterSystem callCounterSystem;
         [SerializeField] private EndingEvaluator endingEvaluator;
+        [SerializeField] private CigaretteSystem cigaretteSystem;
         [SerializeField] private SaveManager saveManager;
         [SerializeField] private int requiredDeepRescueSuccesses = 3;
 
@@ -37,6 +37,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private Button buttonOpenAchievement;
         [SerializeField] private Button buttonOpenSave;
         [SerializeField] private Button buttonDial;
+        [SerializeField] private Button buttonSmoking;
         [SerializeField] private Button buttonDiceTest;
 
         [Header("Popup Buttons")]
@@ -54,6 +55,9 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject panelAchievement;
         [SerializeField] private GameObject panelSave;
         [SerializeField] private GameObject panelResult;
+
+        [Header("Smoking Animation")]
+        [SerializeField] private SmokingAnimationController smokingAnimationController;
 
         [Header("HUD Texts")]
         [SerializeField] private TextMeshProUGUI textHud;
@@ -146,6 +150,7 @@ namespace ObituaryTomorrow.UI
             GameEventBus.PlayerStressChanged += OnPlayerStressChanged;
             GameEventBus.NPCBreakdownChanged += OnNPCBreakdownChanged;
             GameEventBus.CallCounterChanged += OnCallCounterChanged;
+            GameEventBus.CigaretteChanged += OnCigaretteChanged;
 
             AddListener(buttonSettings, OpenSettings);
             AddListener(buttonOpenNewspaper, OpenNewspaper);
@@ -155,6 +160,7 @@ namespace ObituaryTomorrow.UI
             AddListener(buttonOpenAchievement, OpenAchievement);
             AddListener(buttonOpenSave, OpenSave);
             AddListener(buttonDial, StartCall);
+            AddListener(buttonSmoking, StartSmoking);
             AddListener(buttonDiceTest, RollDiceTest);
             AddListener(buttonConfirmMission, ConfirmMission);
             AddListeners(buttonClosePopups, ClosePopup);
@@ -166,6 +172,7 @@ namespace ObituaryTomorrow.UI
             GameEventBus.PlayerStressChanged -= OnPlayerStressChanged;
             GameEventBus.NPCBreakdownChanged -= OnNPCBreakdownChanged;
             GameEventBus.CallCounterChanged -= OnCallCounterChanged;
+            GameEventBus.CigaretteChanged -= OnCigaretteChanged;
 
             RemoveListener(buttonSettings, OpenSettings);
             RemoveListener(buttonOpenNewspaper, OpenNewspaper);
@@ -175,6 +182,7 @@ namespace ObituaryTomorrow.UI
             RemoveListener(buttonOpenAchievement, OpenAchievement);
             RemoveListener(buttonOpenSave, OpenSave);
             RemoveListener(buttonDial, StartCall);
+            RemoveListener(buttonSmoking, StartSmoking);
             RemoveListener(buttonDiceTest, RollDiceTest);
             RemoveListener(buttonConfirmMission, ConfirmMission);
             RemoveListeners(buttonClosePopups, ClosePopup);
@@ -263,12 +271,6 @@ namespace ObituaryTomorrow.UI
 
         private void OpenYellowPages()
         {
-            if (!missionConfirmed)
-            {
-                ShowDialoguePrompt("\u5148\u9605\u8bfb\u62a5\u7eb8\u5e76\u786e\u8ba4\u5f53\u524d\u4efb\u52a1\uff0c\u518d\u67e5\u9ec4\u9875\u3002");
-                return;
-            }
-
             OpenPopup(panelYellowPages, GameState.YellowPagesView);
         }
 
@@ -516,6 +518,68 @@ namespace ObituaryTomorrow.UI
             if (!inCall && GameManager.Instance != null)
             {
                 GameManager.Instance.ChangeState(GameState.MainRoom);
+            }
+        }
+
+        private void StartSmoking()
+        {
+            if (cigaretteSystem == null)
+            {
+                Debug.LogWarning("CigaretteSystem is missing.");
+                return;
+            }
+
+            if (cigaretteSystem.Count <= 0)
+            {
+                ShowDialoguePrompt("\u6ca1\u6709\u9999\u70df\u4e86\u3002");
+                return;
+            }
+
+            OperationResult requestResult = cigaretteSystem.RequestUseCigarette();
+            if (!requestResult.Success)
+            {
+                ShowDialoguePrompt(requestResult.Message);
+                return;
+            }
+
+            RefreshInteractableState();
+
+            if (smokingAnimationController != null)
+            {
+                smokingAnimationController.OnAnimationComplete -= OnSmokingAnimationComplete;
+                smokingAnimationController.OnAnimationComplete += OnSmokingAnimationComplete;
+                smokingAnimationController.Play();
+            }
+            else
+            {
+                ConfirmSmoke();
+            }
+        }
+
+        private void OnSmokingAnimationComplete()
+        {
+            if (smokingAnimationController != null)
+            {
+                smokingAnimationController.OnAnimationComplete -= OnSmokingAnimationComplete;
+            }
+
+            ConfirmSmoke();
+        }
+
+        private void ConfirmSmoke()
+        {
+            if (cigaretteSystem == null)
+            {
+                return;
+            }
+
+            StatChangeResult result = cigaretteSystem.ConfirmUseCigarette();
+            RefreshHud();
+            RefreshInteractableState();
+
+            if (result.NewValue <= 0)
+            {
+                ShowDialoguePrompt("\u9999\u70df\u5df2\u7ecf\u62bd\u5b8c\u4e86\u3002");
             }
         }
 
@@ -877,7 +941,7 @@ namespace ObituaryTomorrow.UI
         private void RefreshStaticTexts()
         {
             SetText(textObituary, "\u8ba3\u544a\uff1aLena\uff0c\u5c06\u4e8e\u4eca\u665a 11:45 \u6b7b\u4ea1\u3002\u7535\u8bdd\u7ebf\u7d22\u5c1a\u5f85\u6838\u5bf9\u3002");
-            SetText(textYellowPages, missionConfirmed ? "Lena - 555-0134" : "\u8bf7\u5148\u786e\u8ba4\u4efb\u52a1\u540e\u518d\u68c0\u7d22\u53f7\u7801\u3002");
+            SetText(textYellowPages, missionConfirmed ? "Lena - 555-0134" : "");
             SetText(textTaskBook, "\u4efb\u52a1\n\n- \u9605\u8bfb\u62a5\u7eb8\n- \u67e5\u627e\u9ec4\u9875\n- \u62e8\u6253\u7535\u8bdd\n- \u5728\u901a\u8bdd\u4e2d\u5b8c\u6210\u9ab0\u5b50\u5224\u5b9a");
             SetText(textAchievement, "\u6210\u5c31\u56fe\u9274\n\n- \u5f7b\u5e95\u6551\u8d4e\n- \u62d6\u65f6\u6539\u5199\n- \u672a\u80fd\u633d\u56de\n- \u7cbe\u795e\u5d29\u6e83");
         }
@@ -953,7 +1017,7 @@ namespace ObituaryTomorrow.UI
 
             if (buttonOpenYellowPages != null)
             {
-                buttonOpenYellowPages.interactable = missionConfirmed && !inCall;
+                buttonOpenYellowPages.interactable = !inCall;
             }
 
             if (buttonDial != null)
@@ -979,6 +1043,12 @@ namespace ObituaryTomorrow.UI
             if (buttonOpenCard != null)
             {
                 buttonOpenCard.interactable = !inCall;
+            }
+
+            if (buttonSmoking != null)
+            {
+                bool hasCigarettes = cigaretteSystem != null && cigaretteSystem.Count > 0;
+                buttonSmoking.interactable = hasCigarettes;
             }
         }
 
@@ -1202,6 +1272,11 @@ namespace ObituaryTomorrow.UI
             {
                 endingEvaluator = FindFirstObjectByType<EndingEvaluator>();
             }
+
+            if (cigaretteSystem == null)
+            {
+                cigaretteSystem = FindFirstObjectByType<CigaretteSystem>();
+            }
         }
 
         private void ResolveSceneReferences()
@@ -1210,8 +1285,11 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonOpenTaskBook, FindComponentByObjectName<Button>("Button_OpenTaskBook"));
             AssignIfMissing(ref buttonOpenCard, FindComponentByObjectName<Button>("Button_OpenCard"));
             AssignIfMissing(ref buttonOpenAchievement, FindComponentByObjectName<Button>("Button_OpenAchievement"));
+            AssignIfMissing(ref buttonOpenNewspaper, FindComponentByObjectName<Button>("Button_OpenNewspaper"));
+            AssignIfMissing(ref buttonOpenYellowPages, FindComponentByObjectName<Button>("Button_OpenYellowPages"));
             AssignIfMissing(ref buttonOpenSave, FindOrAddButtonByObjectName("Button_OpenSave"));
             AssignIfMissing(ref buttonDial, FindComponentByObjectName<Button>("Button_Dial"));
+            AssignIfMissing(ref buttonSmoking, FindComponentByObjectName<Button>("Button_Smoking"));
             AssignIfMissing(ref buttonDiceTest, FindOrAddButtonByObjectName("DiceTest"));
 
             AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
@@ -1309,6 +1387,11 @@ namespace ObituaryTomorrow.UI
         private void OnCallCounterChanged(CallCounterChangedEventArgs args)
         {
             RefreshCallCounterImage(args.NewValue, args.TargetValue);
+        }
+
+        private void OnCigaretteChanged(CigaretteChangedEventArgs args)
+        {
+            RefreshInteractableState();
         }
 
         private static void AddListener(Button button, UnityEngine.Events.UnityAction action)

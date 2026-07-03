@@ -11,7 +11,23 @@ namespace ObituaryTomorrow.Gameplay.Items
         public int Count => RuntimeData != null ? RuntimeData.CigaretteCount : 0;
         public int MaxCount => RuntimeData != null ? RuntimeData.MaxCigaretteCount : 0;
 
-        private PlayerRuntimeData RuntimeData => playerManager != null ? playerManager.RuntimeData : null;
+        private PlayerRuntimeData RuntimeData
+        {
+            get
+            {
+                if (playerManager != null && playerManager.RuntimeData != null)
+                {
+                    return playerManager.RuntimeData;
+                }
+
+                if (GameManager.Instance != null && GameManager.Instance.Session != null)
+                {
+                    return GameManager.Instance.Session.Player;
+                }
+
+                return null;
+            }
+        }
         private bool hasPendingUseRequest;
 
         private void Awake()
@@ -22,11 +38,19 @@ namespace ObituaryTomorrow.Gameplay.Items
             }
         }
 
+        private void EnsurePlayerManager()
+        {
+            if (playerManager == null)
+            {
+                playerManager = FindFirstObjectByType<PlayerManager>();
+            }
+        }
+
         public OperationResult CanUseCigarette()
         {
-            if (playerManager == null || playerManager.RuntimeData == null)
+            if (RuntimeData == null)
             {
-                return OperationResult.Fail("PlayerManager is missing.");
+                return OperationResult.Fail("Player data is missing.");
             }
 
             if (Count <= 0)
@@ -34,7 +58,7 @@ namespace ObituaryTomorrow.Gameplay.Items
                 return OperationResult.Fail("No cigarettes left.");
             }
 
-            if (playerManager.CurrentStress <= 0)
+            if (RuntimeData.CurrentStress <= 0)
             {
                 return OperationResult.Fail("Stress is already zero.");
             }
@@ -84,11 +108,21 @@ namespace ObituaryTomorrow.Gameplay.Items
             GameEventBus.RaiseCigaretteChanged(
                 new CigaretteChangedEventArgs(oldCount, newCount, MaxCount, StatChangeReason.CigaretteUse));
 
-            playerManager.RequestStressChange(new StressChangeRequest(
-                -1,
-                StatChangeReason.CigaretteUse,
-                "CigaretteSystem.ConfirmUseCigarette",
-                false));
+            EnsurePlayerManager();
+            if (playerManager != null)
+            {
+                playerManager.RequestStressChange(new StressChangeRequest(
+                    -1,
+                    StatChangeReason.CigaretteUse,
+                    "CigaretteSystem.ConfirmUseCigarette",
+                    false));
+            }
+            else if (RuntimeData != null)
+            {
+                RuntimeData.CurrentStress = Mathf.Max(0, RuntimeData.CurrentStress - 1);
+                GameEventBus.RaisePlayerStressChanged(
+                    new StressChangedEventArgs(RuntimeData.CurrentStress + 1, RuntimeData.CurrentStress, RuntimeData.MaxStress, StatChangeReason.CigaretteUse));
+            }
 
             return new StatChangeResult(
                 oldCount != newCount,
@@ -102,7 +136,7 @@ namespace ObituaryTomorrow.Gameplay.Items
 
         public StatChangeResult AddCigarette(int amount, StatChangeReason reason)
         {
-            if (playerManager == null || playerManager.RuntimeData == null)
+            if (RuntimeData == null)
             {
                 return new StatChangeResult(false, 0, 0, 0, true, false, reason);
             }
@@ -130,7 +164,7 @@ namespace ObituaryTomorrow.Gameplay.Items
 
         public StatChangeResult SetCigaretteCount(int value, StatChangeReason reason)
         {
-            if (playerManager == null || playerManager.RuntimeData == null)
+            if (RuntimeData == null)
             {
                 return new StatChangeResult(false, 0, 0, 0, true, false, reason);
             }
