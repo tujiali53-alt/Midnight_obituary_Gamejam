@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -8,8 +8,10 @@ using ObituaryTomorrow.Core;
 using ObituaryTomorrow.Gameplay.Call;
 using ObituaryTomorrow.Gameplay.Dice;
 using ObituaryTomorrow.Gameplay.Ending;
+using ObituaryTomorrow.Gameplay.Items;
 using ObituaryTomorrow.Gameplay.NPC;
 using ObituaryTomorrow.Gameplay.Player;
+using ObituaryTomorrow.Gameplay.Save;
 
 namespace ObituaryTomorrow.UI
 {
@@ -24,8 +26,8 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private DiceSystem diceSystem;
         [SerializeField] private CallCounterSystem callCounterSystem;
         [SerializeField] private EndingEvaluator endingEvaluator;
-        [SerializeField] private CigaretteSystem cigaretteSystem;
-        [SerializeField] private SaveManager saveManager;
+        [SerializeField] private ObituaryTomorrow.Gameplay.Items.CigaretteSystem cigaretteSystem;
+        [SerializeField] private ObituaryTomorrow.Gameplay.Save.SaveManager saveManager;
         [SerializeField] private int requiredDeepRescueSuccesses = 3;
 
         [Header("Desk Buttons")]
@@ -244,16 +246,16 @@ namespace ObituaryTomorrow.UI
             return EnsureSaveManager().LoadSlot(slotIndex);
         }
 
-        private SaveManager EnsureSaveManager()
+        private ObituaryTomorrow.Gameplay.Save.SaveManager EnsureSaveManager()
         {
             if (saveManager == null)
             {
-                saveManager = FindFirstObjectByType<SaveManager>();
+                saveManager = FindFirstObjectByType<ObituaryTomorrow.Gameplay.Save.SaveManager>();
             }
 
             if (saveManager == null)
             {
-                saveManager = gameObject.AddComponent<SaveManager>();
+                saveManager = gameObject.AddComponent<ObituaryTomorrow.Gameplay.Save.SaveManager>();
             }
 
             return saveManager;
@@ -326,7 +328,7 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            SaveManager manager = EnsureSaveManager();
+            ObituaryTomorrow.Gameplay.Save.SaveManager manager = EnsureSaveManager();
             TextMeshProUGUI[] texts = panelSave.GetComponentsInChildren<TextMeshProUGUI>(true);
 
             for (int i = 0; i < texts.Length; i++)
@@ -1275,7 +1277,7 @@ namespace ObituaryTomorrow.UI
 
             if (cigaretteSystem == null)
             {
-                cigaretteSystem = FindFirstObjectByType<CigaretteSystem>();
+                cigaretteSystem = FindFirstObjectByType<ObituaryTomorrow.Gameplay.Items.CigaretteSystem>();
             }
         }
 
@@ -1546,4 +1548,5 @@ namespace ObituaryTomorrow.UI
         }
     }
 }
+
 
