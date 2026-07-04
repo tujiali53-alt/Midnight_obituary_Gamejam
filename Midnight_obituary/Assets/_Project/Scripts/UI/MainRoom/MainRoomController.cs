@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -72,6 +72,7 @@ namespace ObituaryTomorrow.UI
         [Header("Dialogue Area")]
         [SerializeField] private GameObject dialogueAreaRoot;
         [SerializeField] private Image imageNpcPortrait;
+        [SerializeField] private Image imageNpcName;
         [SerializeField] private Image imageNpcCard;
         [SerializeField] private TextMeshProUGUI textNpcName;
         [SerializeField] private TextMeshProUGUI textNpcBreakdown;
@@ -636,7 +637,7 @@ namespace ObituaryTomorrow.UI
                 playerManager,
                 callCounterSystem,
                 textNpcName,
-                imageNpcPortrait,
+                imageNpcName != null ? imageNpcName : imageNpcPortrait,
                 textDialogue,
                 textHud,
                 textDice,
@@ -647,6 +648,35 @@ namespace ObituaryTomorrow.UI
             RefreshRuntimeIndicators();
         }
 
+
+        public bool RefreshCurrentArticySpeakerPresentation()
+        {
+            if (callGreyboxController == null)
+            {
+                callGreyboxController = dialogueAreaRoot != null
+                    ? dialogueAreaRoot.GetComponent<CallGreyboxController>()
+                    : FindFirstObjectByType<CallGreyboxController>();
+            }
+
+            if (callGreyboxController == null)
+            {
+                return false;
+            }
+
+            callGreyboxController.ConfigureForMainRoom(
+                playerManager,
+                callCounterSystem,
+                textNpcName,
+                imageNpcName != null ? imageNpcName : imageNpcPortrait,
+                textDialogue,
+                textHud,
+                textDice,
+                groupChoiceButtons,
+                choiceButtonPrefab,
+                null);
+
+            return callGreyboxController.RefreshCurrentArticySpeakerPresentation();
+        }
 
         private void RollDiceTest()
         {
@@ -965,21 +995,14 @@ namespace ObituaryTomorrow.UI
 
         private void RefreshNpcTexts()
         {
-            string npcName = npcManager != null ? npcManager.DisplayName : "NPC";
             string breakdown = npcManager != null
                 ? $"\u5d29\u6e83\u503c\uff1a{npcManager.CurrentBreakdown}/{npcManager.MaxBreakdown}"
                 : "\u5d29\u6e83\u503c\uff1a?/?";
             string card = npcManager != null ? $"NPC\u5361\u724c\uff1a{npcManager.PersonalityTag}" : "NPC\u5361\u724c\uff1a\u672a\u77e5";
 
-            SetText(textNpcName, npcName);
             SetText(textNpcBreakdown, breakdown);
             RefreshBreakdownPips();
             SetText(textNpcCard, card);
-
-            if (imageNpcPortrait != null)
-            {
-                imageNpcPortrait.enabled = imageNpcPortrait.sprite != null;
-            }
 
             if (imageNpcCard != null)
             {
@@ -1299,7 +1322,8 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref panelSave, FindGameObjectByName("Panel_Save"));
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));
             AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcPortrait"));
-            AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcCard"));
+            AssignIfMissing(ref imageNpcName, FindComponentByObjectName<Image>("NPCNameImage"));
+            AssignIfMissing(ref imageNpcCard, FindComponentByObjectName<Image>("Image_NpcCard"));
             AssignIfMissing(ref imageNpcCard, FindComponentByObjectName<Image>("Image_NpcCard (1)"));
             AssignIfMissing(ref textNpcName, FindComponentByObjectName<TextMeshProUGUI>("Text_NpcName"));
             AssignIfMissing(ref textNpcBreakdown, FindComponentByObjectName<TextMeshProUGUI>("Text_NpcBreakdown"));

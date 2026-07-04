@@ -148,6 +148,7 @@ namespace ObituaryTomorrow.UI
             textHud = hudText != null ? hudText : textHud;
             textResult = resultText != null ? resultText : textResult;
             textDiceResult = textDiceResult != null ? textDiceResult : FindComponentByObjectName<TextMeshProUGUI>("DiceResult");
+            imageNpcPortrait = imageNpcPortrait != null ? imageNpcPortrait : FindComponentByObjectName<Image>("NPCNameImage");
             imageNpcPortrait = imageNpcPortrait != null ? imageNpcPortrait : FindComponentByObjectName<Image>("Image_NpcPortrait");
             groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
             choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
@@ -174,7 +175,7 @@ namespace ObituaryTomorrow.UI
             Resources.Load("ArticyDatabase");
 
             currentFragment = FindOpeningFragment();
-            RefreshNpcPresentation(currentFragment);
+            RefreshCurrentArticySpeakerPresentation();
             ResetDialogueHistory();
             AppendDialogueLine(currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
 
@@ -218,7 +219,7 @@ namespace ObituaryTomorrow.UI
                 currentFragment = FindOpeningFragment();
             }
 
-            RefreshNpcPresentation(currentFragment);
+            RefreshCurrentArticySpeakerPresentation();
             RestoreDialogueHistory(restoredDialogueHistory);
 
             if (dialogueHistory.Length == 0)
@@ -303,12 +304,17 @@ namespace ObituaryTomorrow.UI
         {
             string normalized = NormalizeDisplayText(label).Replace("\n", " ");
 
-            if (string.IsNullOrWhiteSpace(normalized))
+            if (string.IsNullOrWhiteSpace(normalized) || IsContinueChoice(normalized))
             {
                 return;
             }
 
             AppendDialogueLine($"\u4f60\uff1a{normalized}");
+        }
+
+        private static bool IsContinueChoice(string label)
+        {
+            return string.Equals(NormalizeDisplayText(label), "\u7ee7\u7eed", StringComparison.Ordinal);
         }
 
         private void RefreshDialogueHistoryText()
@@ -457,7 +463,23 @@ namespace ObituaryTomorrow.UI
             return NormalizeDisplayText($"{npcId} [Articy]");
         }
 
-        private void RefreshNpcPresentation(DialogueFragment fragment)
+        public bool RefreshCurrentArticySpeakerPresentation()
+        {
+            if (currentFragment == null)
+            {
+                Resources.Load("ArticyDatabase");
+                currentFragment = FindOpeningFragment();
+            }
+
+            return RefreshNpcPresentation(currentFragment);
+        }
+
+        public bool RefreshArticySpeakerPresentation(ulong fragmentId)
+        {
+            return RefreshNpcPresentation(FindFragmentById(fragmentId));
+        }
+
+        private bool RefreshNpcPresentation(DialogueFragment fragment)
         {
             ArticyObject speaker = GetFragmentSpeaker(fragment);
             string speakerName = GetSpeakerDisplayName(speaker);
@@ -476,6 +498,7 @@ namespace ObituaryTomorrow.UI
             }
 
             SetNpcPortrait(portraitSprite);
+            return !string.IsNullOrWhiteSpace(speakerName) || portraitSprite != null;
         }
 
         private static ArticyObject GetFragmentSpeaker(DialogueFragment fragment)
@@ -689,10 +712,46 @@ namespace ObituaryTomorrow.UI
 
             if (visibleCount == 0)
             {
-                CreateFallbackChoice("\u7ed3\u675f\u901a\u8bdd");
+                if (TryGetFirstRawContinuationTarget(currentFragment, out ArticyObject continuationTarget))
+                {
+                    CreateChoice(continuationTarget, "\u7ee7\u7eed");
+                }
+                else
+                {
+                    CreateFallbackChoice("\u7ed3\u675f\u901a\u8bdd");
+                }
             }
 
             RebuildChoiceButtonLayout();
+        }
+
+        private static bool TryGetFirstRawContinuationTarget(DialogueFragment fragment, out ArticyObject target)
+        {
+            target = null;
+
+            if (fragment == null || fragment.OutputPins == null)
+            {
+                return false;
+            }
+
+            foreach (OutputPin outputPin in fragment.OutputPins)
+            {
+                if (outputPin == null || outputPin.Connections == null)
+                {
+                    continue;
+                }
+
+                foreach (OutgoingConnection connection in outputPin.Connections)
+                {
+                    if (connection != null && connection.Target != null)
+                    {
+                        target = connection.Target;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void EnsureChoiceButtonPrefab()
@@ -855,7 +914,7 @@ namespace ObituaryTomorrow.UI
             if (target is DialogueFragment fragment)
             {
                 currentFragment = fragment;
-                RefreshNpcPresentation(currentFragment);
+                RefreshCurrentArticySpeakerPresentation();
                 AppendDialogueLine(GetDialogueLineText(fragment));
                 RefreshHud();
                 BuildArticyChoices();
@@ -864,7 +923,13 @@ namespace ObituaryTomorrow.UI
             }
 
             List<ArticyObject> resolvedTargets = new List<ArticyObject>();
-            AddPlayableTargets(target, resolvedTargets, new HashSet<ulong>());
+            HashSet<ulong> visitedIds = new HashSet<ulong>();
+            if (currentFragment != null)
+            {
+                visitedIds.Add(currentFragment.Id);
+            }
+
+            AddPlayableTargets(target, resolvedTargets, visitedIds);
 
             if (resolvedTargets.Count > 0)
             {
@@ -1380,7 +1445,7 @@ namespace ObituaryTomorrow.UI
                 return targets;
             }
 
-            AddOutputPinTargets(fragment.OutputPins, targets, new HashSet<ulong>());
+            AddOutputPinTargets(fragment.OutputPins, targets, new HashSet<ulong> { fragment.Id });
             return targets;
         }
 
@@ -1632,7 +1697,7 @@ namespace ObituaryTomorrow.UI
 
             if (target is Dialogue targetDialogue)
             {
-                DialogueFragment firstChild = FindFirstDescendantDialogueFragment(targetDialogue.Id, new HashSet<ulong>());
+                DialogueFragment firstChild = FindFirstDescendantDialogueFragmentSkipping(targetDialogue.Id, visitedIds);
 
                 if (firstChild != null)
                 {
@@ -1672,7 +1737,7 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            DialogueFragment childFragment = FindFirstChildDialogueFragment(target.Id);
+            DialogueFragment childFragment = FindFirstChildDialogueFragmentSkipping(target.Id, visitedIds);
 
             if (childFragment != null)
             {
@@ -1891,11 +1956,16 @@ namespace ObituaryTomorrow.UI
 
         private static DialogueFragment FindFirstChildDialogueFragment(ulong parentId)
         {
+            return FindFirstChildDialogueFragmentSkipping(parentId, null);
+        }
+
+        private static DialogueFragment FindFirstChildDialogueFragmentSkipping(ulong parentId, HashSet<ulong> skipIds)
+        {
             DialogueFragment firstChild = null;
 
             foreach (DialogueFragment fragment in ArticyDatabase.GetAllOfType<DialogueFragment>())
             {
-                if (fragment == null || fragment.ParentId != parentId)
+                if (fragment == null || fragment.ParentId != parentId || (skipIds != null && skipIds.Contains(fragment.Id)))
                 {
                     continue;
                 }
@@ -1907,6 +1977,60 @@ namespace ObituaryTomorrow.UI
             }
 
             return firstChild;
+        }
+
+        private static DialogueFragment FindFirstDescendantDialogueFragmentSkipping(ulong parentId, HashSet<ulong> skipIds)
+        {
+            return FindFirstDescendantDialogueFragmentSkipping(parentId, new HashSet<ulong>(), skipIds);
+        }
+
+        private static DialogueFragment FindFirstDescendantDialogueFragmentSkipping(ulong parentId, HashSet<ulong> traversalVisitedIds, HashSet<ulong> skipIds)
+        {
+            if (!traversalVisitedIds.Add(parentId))
+            {
+                return null;
+            }
+
+            DialogueFragment directChild = FindFirstChildDialogueFragmentSkipping(parentId, skipIds);
+
+            if (directChild != null)
+            {
+                return directChild;
+            }
+
+            DialogueFragment firstDescendant = null;
+
+            foreach (Dialogue dialogue in ArticyDatabase.GetAllOfType<Dialogue>())
+            {
+                if (dialogue == null || dialogue.ParentId != parentId)
+                {
+                    continue;
+                }
+
+                DialogueFragment descendant = FindFirstDescendantDialogueFragmentSkipping(dialogue.Id, traversalVisitedIds, skipIds);
+
+                if (descendant != null && (firstDescendant == null || descendant.Id < firstDescendant.Id))
+                {
+                    firstDescendant = descendant;
+                }
+            }
+
+            foreach (FlowFragment flowFragment in ArticyDatabase.GetAllOfType<FlowFragment>())
+            {
+                if (flowFragment == null || flowFragment.ParentId != parentId)
+                {
+                    continue;
+                }
+
+                DialogueFragment descendant = FindFirstDescendantDialogueFragmentSkipping(flowFragment.Id, traversalVisitedIds, skipIds);
+
+                if (descendant != null && (firstDescendant == null || descendant.Id < firstDescendant.Id))
+                {
+                    firstDescendant = descendant;
+                }
+            }
+
+            return firstDescendant;
         }
 
         private static DialogueFragment FindFirstDescendantDialogueFragment(ulong parentId, HashSet<ulong> visitedIds)
