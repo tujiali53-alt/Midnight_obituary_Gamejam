@@ -21,122 +21,6 @@ MonoBehaviour:
     mIsVoiceOver: 0
   mThrowOnMissingText: 0
   mClearOnLanguageSwitch: 1
---- !u!114 &-2404572328274140880
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a77e92af79e9e94982c5fd5ad75aaa0, type: 3}
-  m_Name: DefaultGlobalVariables
-  m_EditorClassIdentifier: Assembly-CSharp::Articy.ArticyProject.GlobalVariables.ArticyGlobalVariables
-  mBoolVariableCache:
-  - mFullQualifiedName: edward.you_are_secretary
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.you_are_sales
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.you_are_the_legend
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.the_wrong_path
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.regret
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.schmidt
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.talked_about_phil
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.mark_saved_his_life
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.major_lied
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.phil_is_the_cause
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.phil_understands
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.meaning_of_pussy
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.will_checked
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.te
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.he
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.ne
-    mVar:
-      values: 00
-  - mFullQualifiedName: edward.be
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.you_are_angel
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.roof_door
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.trustworthy
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.maybe_later
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.the_poem
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.father
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.woolf
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.daniel
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.imagine_future
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.someone_will
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.be
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.he
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.ne
-    mVar:
-      values: 00
-  - mFullQualifiedName: julian.te
-    mVar:
-      values: 00
-  mIntVariableCache: []
-  mStringVariableCache: []
-  mLiveBoolVariableCache: []
-  mLiveIntVariableCache: []
-  mLiveStringVariableCache: []
-  mIsInitialized: 1
-  mEdward:
-    _VariableStorage: {fileID: -2404572328274140880}
-  mJulian:
-    _VariableStorage: {fileID: -2404572328274140880}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -154,14 +38,14 @@ MonoBehaviour:
   mRuleSetId: 270
   mArticyAssetsUseResourcesFolder: 1
   mInternalProject:
-    mName: "\u660E\u65E5\u8BA3\u544A"
+    mName: "\u5348\u591C\u8BA3\u544A"
     mDetailName: 
     mId: 3af8145f-396b-4407-812e-cf1e1f38f107
     mTechnicalName: ArticyProject
   mImportedAssets:
   - "\u8D44\u6E90/\u56FE\u50CF/Edward_Mallory.png"
   - "\u8D44\u6E90/\u56FE\u50CF/96CBD209869C83DD99380F0C902786D2.png"
-  mDefaultGlobalVariables: {fileID: -2404572328274140880}
+  mDefaultGlobalVariables: {fileID: 8273245892842641157}
   mPackages:
   - PackageId: 72057594037928209
     PackageName: "\u6240\u6709\u5BF9\u8C61"
@@ -3284,6 +3168,21 @@ MonoBehaviour:
     parent: 72057594037927937
     technicalName: Documents
     articyType: Documents
+    childCount: 1
+  - id: 72057594037951540
+    parent: 216172782386062064
+    technicalName: Doc_A46D8E8F
+    articyType: Document
+    childCount: 2
+  - id: 72057594037951549
+    parent: 72057594037951540
+    technicalName: Txt_F44BB647
+    articyType: TextObject
+    childCount: 0
+  - id: 72057594037951554
+    parent: 72057594037951540
+    technicalName: Txt_08A3DD88
+    articyType: TextObject
     childCount: 0
   - id: 216172782708290162
     parent: 72057594037927937
@@ -3510,3 +3409,119 @@ MonoBehaviour:
     technicalName: Ufo_2049F2E9
     articyType: AssetsUserFolder
     childCount: 0
+--- !u!114 &8273245892842641157
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a77e92af79e9e94982c5fd5ad75aaa0, type: 3}
+  m_Name: DefaultGlobalVariables
+  m_EditorClassIdentifier: Assembly-CSharp::Articy.ArticyProject.GlobalVariables.ArticyGlobalVariables
+  mBoolVariableCache:
+  - mFullQualifiedName: edward.you_are_secretary
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.you_are_sales
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.you_are_the_legend
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.the_wrong_path
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.regret
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.schmidt
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.talked_about_phil
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.mark_saved_his_life
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.major_lied
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.phil_is_the_cause
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.phil_understands
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.meaning_of_pussy
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.will_checked
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.te
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.he
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.ne
+    mVar:
+      values: 00
+  - mFullQualifiedName: edward.be
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.you_are_angel
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.roof_door
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.trustworthy
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.maybe_later
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.the_poem
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.father
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.woolf
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.daniel
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.imagine_future
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.someone_will
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.be
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.he
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.ne
+    mVar:
+      values: 00
+  - mFullQualifiedName: julian.te
+    mVar:
+      values: 00
+  mIntVariableCache: []
+  mStringVariableCache: []
+  mLiveBoolVariableCache: []
+  mLiveIntVariableCache: []
+  mLiveStringVariableCache: []
+  mIsInitialized: 1
+  mEdward:
+    _VariableStorage: {fileID: 8273245892842641157}
+  mJulian:
+    _VariableStorage: {fileID: 8273245892842641157}

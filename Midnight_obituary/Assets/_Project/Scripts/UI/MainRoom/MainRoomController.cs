@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.TextCore.LowLevel;
 using ObituaryTomorrow.Core;
 using ObituaryTomorrow.Gameplay.Call;
 using ObituaryTomorrow.Gameplay.Dice;
@@ -12,14 +13,25 @@ using ObituaryTomorrow.Gameplay.Items;
 using ObituaryTomorrow.Gameplay.NPC;
 using ObituaryTomorrow.Gameplay.Player;
 using ObituaryTomorrow.Gameplay.Save;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace ObituaryTomorrow.UI
 {
     public sealed class MainRoomController : MonoBehaviour
     {
         private const string DefaultMissionId = "MIS_Lena_001";
-        private const string DefaultNpcId = "NPC_Lena_001";
-        private const string DefaultDialogueId = "DIA_Lena_001";
+        private const string EdwardNpcId = "edward_mallory";
+        private const string JulianNpcId = "julian_ashford";
+        private const string EdwardDialogueId = "Dlg_27FBE381";
+        private const string JulianDialogueId = "Dlg_978F0298";
+        private const string EdwardName = "\u7231\u5fb7\u534e\u00b7\u9a6c\u6d1b\u793c";
+        private const string JulianName = "\u6731\u5229\u5b89\u00b7\u5f7c\u5f97\u00b7\u963f\u4ec0\u798f\u5fb7";
+        private const string ComingSoonName = "\u656c\u8bf7\u671f\u5f85";
+        private const string EdwardObituaryText = "\u4eca\u65e5\u51cc\u6668\uff0c\u4e00\u540d59\u5c81\u7537\u5b50\u5728\u5176\u4e0a\u4e1c\u533a\u4f4f\u6240\u5185\u996e\u5f39\u81ea\u5c3d\u3002\u6b7b\u8005\u4e3a\u7f8e\u56fd\u9646\u519b\u5c11\u6821\u7231\u5fb7\u534e\u00b7\u9a6c\u6d1b\u793c\uff0c\u5c38\u4f53\u7ecf\u7531\u6b64\u524d\u4e0e\u5176\u540c\u4f4f\u7684\u5973\u6027\u786e\u8ba4\uff0c\u8be5\u5973\u6027\u76ee\u524d\u56e0\u60b2\u75db\u60ca\u53a5\u9001\u533b\u3002\u7ebd\u7ea6\u9000\u4f0d\u519b\u4eba\u7ba1\u7406\u5c40\u53ca\u201c\u7f8e\u56fd\u519b\u56e2\u201d\u4e3a\u5c11\u6821\u732e\u4e0a\u6c89\u75db\u60bc\u5ff5\u3002";
+        private const string JulianObituaryText = "\u4eca\u65e5\u51cc\u6668\uff0c\u4e00\u540d16\u5c81\u7537\u5b69\u4ece\u516c\u56ed\u5927\u9053\u516c\u5bd3\u9876\u5c42\u5760\u697c\u8eab\u4ea1\uff0c\u63a8\u5b9a\u4e3a\u81ea\u6740\u3002\u6b7b\u8005\u540d\u4e3a\u6731\u5229\u5b89\u00b7\u5f7c\u5f97\u00b7\u963f\u4ec0\u798f\u5fb7\uff0c\u5f53\u5730\u8457\u540d\u79c1\u7acb\u7537\u6821\u5b66\u751f\u3002\u6b7b\u8005\u7236\u4eb2\u8868\u793a\u5b66\u6821\u5e94\u5bf9\u5b66\u751f\u7684\u81ea\u6740\u884c\u4e3a\u8d1f\u8d23\uff0c\u5c06\u4f1a\u5bf9\u5b66\u6821\u63d0\u8d77\u8bc9\u8bbc\u3002";
+        private const string ComingSoonText = "\u656c\u8bf7\u671f\u5f85";
         [Header("Gameplay")]
         [SerializeField] private PlayerManager playerManager;
         [SerializeField] private NPCManager npcManager;
@@ -33,6 +45,10 @@ namespace ObituaryTomorrow.UI
         [Header("Desk Buttons")]
         [SerializeField] private Button buttonSettings;
         [SerializeField] private Button buttonOpenNewspaper;
+        [SerializeField] private Button buttonNpc01;
+        [SerializeField] private Button buttonNpc02;
+        [SerializeField] private Button buttonNpc03;
+        [SerializeField] private Button buttonNpc04;
         [SerializeField] private Button buttonOpenYellowPages;
         [SerializeField] private Button buttonOpenTaskBook;
         [SerializeField] private Button buttonOpenCard;
@@ -84,6 +100,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject dialogueAreaRoot;
         [SerializeField] private Image imageNpcPortrait;
         [SerializeField] private Image imageNpcName;
+        [SerializeField] private Image imageNpcDisplay;
         [SerializeField] private Image imageNpcCard;
         [SerializeField] private TextMeshProUGUI textNpcName;
         [SerializeField] private TextMeshProUGUI textNpcBreakdown;
@@ -151,6 +168,11 @@ namespace ObituaryTomorrow.UI
         private bool missionConfirmed;
         private bool inCall;
         private int deepRescueSuccessCount;
+        private string selectedNpcId = EdwardNpcId;
+        private string selectedNpcName = EdwardName;
+        private string selectedDialogueId = EdwardDialogueId;
+        private Sprite selectedNpcSprite;
+        private TMP_FontAsset readableChineseFont;
         private Coroutine diceAnimationRoutine;
         private Coroutine smokingTipHideRoutine;
         private CanvasGroup panelTipsCanvasGroup;
@@ -172,6 +194,10 @@ namespace ObituaryTomorrow.UI
 
             AddListener(buttonSettings, OpenSettings);
             AddListener(buttonOpenNewspaper, OpenNewspaper);
+            AddListener(buttonNpc01, SelectEdwardObituary);
+            AddListener(buttonNpc02, SelectJulianObituary);
+            AddListener(buttonNpc03, SelectComingSoonObituary);
+            AddListener(buttonNpc04, SelectComingSoonObituary);
             AddListener(buttonOpenYellowPages, OpenYellowPages);
             AddListener(buttonOpenTaskBook, OpenTaskBook);
             AddListener(buttonOpenCard, OpenCard);
@@ -209,6 +235,10 @@ namespace ObituaryTomorrow.UI
 
             RemoveListener(buttonSettings, OpenSettings);
             RemoveListener(buttonOpenNewspaper, OpenNewspaper);
+            RemoveListener(buttonNpc01, SelectEdwardObituary);
+            RemoveListener(buttonNpc02, SelectJulianObituary);
+            RemoveListener(buttonNpc03, SelectComingSoonObituary);
+            RemoveListener(buttonNpc04, SelectComingSoonObituary);
             RemoveListener(buttonOpenYellowPages, OpenYellowPages);
             RemoveListener(buttonOpenTaskBook, OpenTaskBook);
             RemoveListener(buttonOpenCard, OpenCard);
@@ -331,6 +361,125 @@ namespace ObituaryTomorrow.UI
         private void OpenNewspaper()
         {
             OpenPopup(panelNewspaper, GameState.ObituaryView);
+        }
+
+        private void SelectEdwardObituary()
+        {
+            SelectNewspaperObituary(EdwardNpcId, EdwardName, EdwardDialogueId, EdwardObituaryText, GetButtonSprite(buttonNpc01));
+        }
+
+        private void SelectJulianObituary()
+        {
+            SelectNewspaperObituary(JulianNpcId, JulianName, JulianDialogueId, JulianObituaryText, GetButtonSprite(buttonNpc02));
+        }
+
+        private void SelectComingSoonObituary()
+        {
+            SelectNewspaperObituary(selectedNpcId, ComingSoonName, selectedDialogueId, ComingSoonText, null);
+        }
+
+        private void SelectNewspaperObituary(string npcId, string npcName, string dialogueId, string obituaryText, Sprite npcSprite)
+        {
+            if (!string.IsNullOrWhiteSpace(npcId))
+            {
+                selectedNpcId = npcId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(npcName))
+            {
+                selectedNpcName = npcName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dialogueId))
+            {
+                selectedDialogueId = dialogueId;
+            }
+
+            if (npcSprite != null)
+            {
+                selectedNpcSprite = npcSprite;
+            }
+
+            SetText(textNpcName, npcName);
+            SetText(textObituary, obituaryText);
+            ApplySelectedNpcSprite();
+            ConfigureObituaryText();
+
+            if (textObituary != null)
+            {
+                textObituary.gameObject.SetActive(true);
+            }
+        }
+
+        private static Sprite GetButtonSprite(Button button)
+        {
+            if (button == null)
+            {
+                return null;
+            }
+
+            Image image = GetNpcButtonImage(button);
+            return image != null ? image.sprite : null;
+        }
+
+        private static Image GetNpcButtonImage(Button button)
+        {
+            Image[] childImages = button.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < childImages.Length; i++)
+            {
+                Image childImage = childImages[i];
+                if (childImage != null
+                    && childImage.transform != button.transform
+                    && childImage.name.EndsWith("_Image", StringComparison.Ordinal))
+                {
+                    return childImage;
+                }
+            }
+
+            Image image = button.targetGraphic as Image;
+            return image != null ? image : button.GetComponent<Image>();
+        }
+
+        private void ApplySelectedNpcSprite()
+        {
+            if (selectedNpcSprite == null)
+            {
+                return;
+            }
+
+            ApplySprite(imageNpcName, selectedNpcSprite);
+            ApplySprite(imageNpcPortrait, selectedNpcSprite);
+            ApplySprite(imageNpcDisplay, selectedNpcSprite);
+        }
+
+        private static void ApplySprite(Image image, Sprite sprite)
+        {
+            if (image == null || sprite == null)
+            {
+                return;
+            }
+
+            image.sprite = sprite;
+            image.enabled = true;
+            image.preserveAspect = true;
+        }
+
+        private void ConfigureObituaryText()
+        {
+            if (textObituary == null)
+            {
+                return;
+            }
+
+            EnsureReadableChineseFont();
+            ApplyReadableFont(textObituary);
+            ApplyReadableFont(textNpcName);
+            textObituary.enableAutoSizing = true;
+            textObituary.fontSizeMin = 10f;
+            textObituary.fontSizeMax = 18f;
+            textObituary.enableWordWrapping = true;
+            textObituary.overflowMode = TextOverflowModes.Truncate;
+            textObituary.alignment = TextAlignmentOptions.TopLeft;
         }
 
         private void OpenYellowPages()
@@ -799,9 +948,16 @@ namespace ObituaryTomorrow.UI
             deepRescueSuccessCount = 0;
 
             GameManager.Instance.SetCurrentMission(DefaultMissionId);
-            GameManager.Instance.StartCall(DefaultNpcId, DefaultDialogueId);
-            npcManager?.BeginCall(DefaultNpcId);
-            callCounterSystem?.BeginCall(DefaultNpcId);
+            GameManager.Instance.StartCall(selectedNpcId, selectedDialogueId);
+            npcManager?.RestoreRuntimeData(
+                selectedNpcId,
+                selectedNpcName,
+                PersonalityTag.Emotional,
+                1,
+                3,
+                30,
+                selectedDialogueId);
+            callCounterSystem?.BeginCall(selectedNpcId);
             StartEmbeddedCallFlow();
             RefreshInteractableState();
         }
@@ -830,13 +986,17 @@ namespace ObituaryTomorrow.UI
                 playerManager,
                 callCounterSystem,
                 textNpcName,
-                imageNpcName != null ? imageNpcName : imageNpcPortrait,
+                imageNpcPortrait != null ? imageNpcPortrait : imageNpcName,
                 textDialogue,
                 textHud,
                 textDice,
                 groupChoiceButtons,
                 choiceButtonPrefab,
-                null);
+                null,
+                selectedDialogueId,
+                selectedDialogueId,
+                selectedNpcName,
+                selectedNpcSprite);
             callGreyboxController.BeginCall(true);
             RefreshRuntimeIndicators();
         }
@@ -860,13 +1020,17 @@ namespace ObituaryTomorrow.UI
                 playerManager,
                 callCounterSystem,
                 textNpcName,
-                imageNpcName != null ? imageNpcName : imageNpcPortrait,
+                imageNpcPortrait != null ? imageNpcPortrait : imageNpcName,
                 textDialogue,
                 textHud,
                 textDice,
                 groupChoiceButtons,
                 choiceButtonPrefab,
-                null);
+                null,
+                selectedDialogueId,
+                selectedDialogueId,
+                selectedNpcName,
+                selectedNpcSprite);
 
             return callGreyboxController.RefreshCurrentArticySpeakerPresentation();
         }
@@ -1165,7 +1329,13 @@ namespace ObituaryTomorrow.UI
 
         private void RefreshStaticTexts()
         {
-            SetText(textObituary, "\u8ba3\u544a\uff1aLena\uff0c\u5c06\u4e8e\u4eca\u665a 11:45 \u6b7b\u4ea1\u3002\u7535\u8bdd\u7ebf\u7d22\u5c1a\u5f85\u6838\u5bf9\u3002");
+            SetText(textObituary, string.Empty);
+            ConfigureObituaryText();
+            if (textObituary != null)
+            {
+                textObituary.gameObject.SetActive(false);
+            }
+
             SetText(textYellowPages, missionConfirmed ? "Lena - 555-0134" : "");
             SetText(textTaskBook, "\u4efb\u52a1\n\n- \u9605\u8bfb\u62a5\u7eb8\n- \u67e5\u627e\u9ec4\u9875\n- \u62e8\u6253\u7535\u8bdd\n- \u5728\u901a\u8bdd\u4e2d\u5b8c\u6210\u9ab0\u5b50\u5224\u5b9a");
             SetText(textAchievement, "\u6210\u5c31\u56fe\u9274\n\n- \u5f7b\u5e95\u6551\u8d4e\n- \u62d6\u65f6\u6539\u5199\n- \u672a\u80fd\u633d\u56de\n- \u7cbe\u795e\u5d29\u6e83");
@@ -1435,7 +1605,7 @@ namespace ObituaryTomorrow.UI
 
             int safeMax = Mathf.Max(1, max);
             int visibleCount = Mathf.Clamp(current, 0, safeMax);
-            activeTemplate.gameObject.SetActive(visibleCount > 0);
+            activeTemplate.gameObject.SetActive(false);
 
             if (visibleCount <= 0)
             {
@@ -1444,21 +1614,87 @@ namespace ObituaryTomorrow.UI
 
             RectTransform templateRect = activeTemplate.rectTransform;
             Vector2 origin = templateRect.anchoredPosition;
-            float[] runtimePipX = { 152f, 225f, 296f };
+            float[] runtimePipX = { 35f, 91f, 148f, 206f };
 
             for (int i = 0; i < visibleCount; i++)
             {
-                Image pip = i == 0 ? activeTemplate : Instantiate(activeTemplate, parent);
-                pip.name = i == 0 ? activeTemplate.name : $"RuntimePip_{i}";
+                Image pip = Instantiate(activeTemplate, parent);
+                pip.name = $"RuntimePip_{i + 1}";
                 pip.gameObject.SetActive(true);
 
                 RectTransform pipRect = pip.rectTransform;
-                float x = i > 0 && i <= runtimePipX.Length ? runtimePipX[i - 1] : origin.x;
+                float x = i < runtimePipX.Length ? runtimePipX[i] : origin.x;
                 pipRect.anchoredPosition = new Vector2(x, origin.y);
                 pipRect.sizeDelta = templateRect.sizeDelta;
                 pipRect.localScale = templateRect.localScale;
             }
         }
+
+        private void EnsureReadableChineseFont()
+        {
+            if (readableChineseFont == null)
+            {
+                readableChineseFont = CreateReadableChineseFont();
+            }
+
+            if (readableChineseFont == null)
+            {
+                return;
+            }
+
+            foreach (TextMeshProUGUI text in GetComponentsInChildren<TextMeshProUGUI>(true))
+            {
+                ApplyReadableFont(text);
+            }
+        }
+
+        private void ApplyReadableFont(TextMeshProUGUI text)
+        {
+            if (text == null || readableChineseFont == null)
+            {
+                return;
+            }
+
+            text.font = readableChineseFont;
+            text.fontSharedMaterial = readableChineseFont.material;
+        }
+
+        private static TMP_FontAsset CreateReadableChineseFont()
+        {
+#if UNITY_EDITOR
+            string[] assetPaths =
+            {
+                "Assets/_Project/Art/Fonts/WenQuanyi Micro Hei.ttf",
+                "Assets/_Project/Art/Fonts/\u8feb\u771f\u6253\u5b57\u6cb9\u5370\u9ad4.ttf"
+            };
+
+            const string probeText = EdwardName + JulianName + ComingSoonText + EdwardObituaryText + JulianObituaryText
+                + "\u65c1\u767d\u89d2\u8272\u5361\u724c\u5d29\u6e83\u538b\u529b\u8ba1\u6570";
+
+            for (int i = 0; i < assetPaths.Length; i++)
+            {
+                Font font = AssetDatabase.LoadAssetAtPath<Font>(assetPaths[i]);
+                if (font == null)
+                {
+                    continue;
+                }
+
+                TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, 4096, 4096);
+                fontAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                fontAsset.name = $"{font.name} MainRoom Runtime SDF";
+
+                fontAsset.TryAddCharacters(probeText, out _);
+                if (TMP_Settings.fallbackFontAssets != null && !TMP_Settings.fallbackFontAssets.Contains(fontAsset))
+                {
+                    TMP_Settings.fallbackFontAssets.Insert(0, fontAsset);
+                }
+
+                return fontAsset;
+            }
+#endif
+            return null;
+        }
+
         private static void SetImageValue(Image image, int current, int max, string label)
         {
             if (image == null)
@@ -1516,6 +1752,10 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonOpenCard, FindComponentByObjectName<Button>("Button_OpenCard"));
             AssignIfMissing(ref buttonOpenAchievement, FindComponentByObjectName<Button>("Button_OpenAchievement"));
             AssignIfMissing(ref buttonOpenNewspaper, FindComponentByObjectName<Button>("Button_OpenNewspaper"));
+            AssignIfMissing(ref buttonNpc01, FindComponentByObjectName<Button>("Button_Npc01"));
+            AssignIfMissing(ref buttonNpc02, FindComponentByObjectName<Button>("Button_Npc02"));
+            AssignIfMissing(ref buttonNpc03, FindComponentByObjectName<Button>("Button_Npc03"));
+            AssignIfMissing(ref buttonNpc04, FindComponentByObjectName<Button>("Button_Npc04"));
             AssignIfMissing(ref buttonOpenYellowPages, FindComponentByObjectName<Button>("Button_OpenYellowPages"));
             AssignIfMissing(ref buttonOpenSave, FindOrAddButtonByObjectName("Button_OpenSave"));
             AssignIfMissing(ref buttonDial, FindComponentByObjectName<Button>("Button_Dial"));
@@ -1529,6 +1769,7 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));
             AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcPortrait"));
             AssignIfMissing(ref imageNpcName, FindComponentByObjectName<Image>("NPCNameImage"));
+            AssignIfMissing(ref imageNpcDisplay, FindComponentByObjectName<Image>("NPC01_Image"));
             AssignIfMissing(ref imageNpcCard, FindComponentByObjectName<Image>("Image_NpcCard"));
             AssignIfMissing(ref imageNpcCard, FindComponentByObjectName<Image>("Image_NpcCard (1)"));
             AssignIfMissing(ref textNpcName, FindComponentByObjectName<TextMeshProUGUI>("Text_NpcName"));

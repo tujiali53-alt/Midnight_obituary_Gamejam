@@ -73,6 +73,8 @@ namespace ObituaryTomorrow.UI
         private bool delayReminderShown;
         private bool callInitialized;
         private bool isResolvingDiceCheck;
+        private string fixedNpcDisplayName;
+        private Sprite fixedNpcSprite;
         private Coroutine diceAnimationRoutine;
         private int callCount;
 
@@ -137,7 +139,11 @@ namespace ObituaryTomorrow.UI
             TextMeshProUGUI resultText,
             Transform choicesRoot,
             Button choicePrefab,
-            Button returnButton)
+            Button returnButton,
+            string configuredOpeningFlowName = null,
+            string configuredOpeningFragmentTechnicalName = null,
+            string configuredNpcDisplayName = null,
+            Sprite configuredNpcSprite = null)
         {
             autoStartOnStart = false;
             playerManager = sourcePlayerManager != null ? sourcePlayerManager : playerManager;
@@ -153,6 +159,19 @@ namespace ObituaryTomorrow.UI
             groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
             choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
             buttonReturnMainRoom = returnButton != null ? returnButton : buttonReturnMainRoom;
+            openingFlowName = string.IsNullOrWhiteSpace(configuredOpeningFlowName) ? openingFlowName : configuredOpeningFlowName;
+            openingFragmentTechnicalName = string.IsNullOrWhiteSpace(configuredOpeningFragmentTechnicalName)
+                ? openingFragmentTechnicalName
+                : configuredOpeningFragmentTechnicalName;
+            fixedNpcDisplayName = string.IsNullOrWhiteSpace(configuredNpcDisplayName)
+                ? fixedNpcDisplayName
+                : configuredNpcDisplayName;
+            fixedNpcSprite = configuredNpcSprite != null ? configuredNpcSprite : fixedNpcSprite;
+
+            if (fixedNpcSprite != null)
+            {
+                SetNpcPortrait(fixedNpcSprite);
+            }
 
             if (diceSystem == null)
             {
@@ -470,7 +489,9 @@ namespace ObituaryTomorrow.UI
         private bool RefreshNpcPresentation(DialogueFragment fragment)
         {
             ArticyObject speaker = GetFragmentSpeaker(fragment);
-            string speakerName = GetSpeakerDisplayName(speaker);
+            string speakerName = string.IsNullOrWhiteSpace(fixedNpcDisplayName)
+                ? GetSpeakerDisplayName(speaker)
+                : fixedNpcDisplayName;
 
             if (string.IsNullOrWhiteSpace(speakerName))
             {
@@ -485,7 +506,16 @@ namespace ObituaryTomorrow.UI
                 portraitSprite = GetPreviewSprite(fragment);
             }
 
-            SetNpcPortrait(portraitSprite);
+            if (fixedNpcSprite != null)
+            {
+                portraitSprite = fixedNpcSprite;
+            }
+
+            if (portraitSprite != null || string.IsNullOrWhiteSpace(fixedNpcDisplayName))
+            {
+                SetNpcPortrait(portraitSprite);
+            }
+
             return !string.IsNullOrWhiteSpace(speakerName) || portraitSprite != null;
         }
 
@@ -688,14 +718,27 @@ namespace ObituaryTomorrow.UI
 
             nextTargets.RemoveAll(IsDiceCheckNode);
 
-            int visibleCount = Mathf.Min(nextTargets.Count, Mathf.Max(1, maxChoiceCount));
+            int visibleCount = 0;
+            int maxVisibleCount = Mathf.Max(1, maxChoiceCount);
+            bool hasContinueChoice = false;
 
-            for (int i = 0; i < visibleCount; i++)
+            for (int i = 0; i < nextTargets.Count && visibleCount < maxVisibleCount; i++)
             {
                 ArticyObject target = nextTargets[i];
                 string label = GetChoiceButtonLabel(target);
 
+                if (IsContinueChoiceLabel(label))
+                {
+                    if (hasContinueChoice)
+                    {
+                        continue;
+                    }
+
+                    hasContinueChoice = true;
+                }
+
                 CreateChoice(target, label);
+                visibleCount++;
             }
 
             if (visibleCount == 0)
@@ -711,6 +754,12 @@ namespace ObituaryTomorrow.UI
             }
 
             RebuildChoiceButtonLayout();
+        }
+
+        private static bool IsContinueChoiceLabel(string label)
+        {
+            string normalized = NormalizeDisplayText(label);
+            return normalized == "\u7ee7\u7eed" || normalized == "\u7ee7\u7eed\u901a\u8bdd";
         }
 
         private static bool TryGetFirstRawContinuationTarget(DialogueFragment fragment, out ArticyObject target)
