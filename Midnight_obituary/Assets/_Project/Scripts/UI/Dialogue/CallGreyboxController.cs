@@ -51,6 +51,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private TextMeshProUGUI textHud;
         [SerializeField] private TextMeshProUGUI textResult;
         [SerializeField] private TextMeshProUGUI textDiceResult;
+        [SerializeField] private ScrollRect dialogueScrollRect;
 
         [Header("Choices")]
         [SerializeField] private Transform groupChoiceButtons;
@@ -65,6 +66,7 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private GameObject[] rightDiceFaceObjects;
 
         private readonly List<Button> spawnedChoiceButtons = new List<Button>();
+        private readonly StringBuilder dialogueHistory = new StringBuilder();
         private readonly HashSet<ulong> completedDiceCheckIds = new HashSet<ulong>();
         private TMP_FontAsset runtimeChineseFont;
         private DialogueFragment currentFragment;
@@ -146,6 +148,7 @@ namespace ObituaryTomorrow.UI
             textHud = hudText != null ? hudText : textHud;
             textResult = resultText != null ? resultText : textResult;
             textDiceResult = textDiceResult != null ? textDiceResult : FindComponentByObjectName<TextMeshProUGUI>("DiceResult");
+            imageNpcPortrait = imageNpcPortrait != null ? imageNpcPortrait : FindComponentByObjectName<Image>("NPCNameImage");
             imageNpcPortrait = imageNpcPortrait != null ? imageNpcPortrait : FindComponentByObjectName<Image>("Image_NpcPortrait");
             groupChoiceButtons = choicesRoot != null ? choicesRoot : groupChoiceButtons;
             choiceButtonPrefab = choicePrefab != null ? choicePrefab : choiceButtonPrefab;
@@ -168,11 +171,13 @@ namespace ObituaryTomorrow.UI
 
             callInitialized = true;
             EnsureReadableChineseFont();
+            EnsureDialogueScrollView();
             Resources.Load("ArticyDatabase");
 
             currentFragment = FindOpeningFragment();
-            RefreshNpcPresentation(currentFragment);
-            SetText(textDialogue, currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
+            RefreshCurrentArticySpeakerPresentation();
+            ResetDialogueHistory();
+            AppendDialogueLine(currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
 
             if (textResult != null)
             {
@@ -181,6 +186,272 @@ namespace ObituaryTomorrow.UI
 
             RefreshHud();
             BuildArticyChoices();
+        }
+
+        public ulong GetCurrentArticyFragmentId()
+        {
+            return currentFragment != null ? currentFragment.Id : 0UL;
+        }
+
+        public int GetCurrentCallCount()
+        {
+            return callCounterSystem != null ? callCounterSystem.CurrentCount : callCount;
+        }
+
+        public bool GetDelayReminderShown()
+        {
+            return delayReminderShown;
+        }
+
+        public bool RestoreArticyState(ulong fragmentId, int restoredCallCount, bool restoredDelayReminderShown, string restoredDialogueHistory = null)
+        {
+            callCount = Mathf.Max(0, restoredCallCount);
+            delayReminderShown = restoredDelayReminderShown;
+            callInitialized = true;
+            EnsureReadableChineseFont();
+            EnsureDialogueScrollView();
+            Resources.Load("ArticyDatabase");
+
+            currentFragment = FindFragmentById(fragmentId);
+
+            if (currentFragment == null)
+            {
+                currentFragment = FindOpeningFragment();
+            }
+
+            RefreshCurrentArticySpeakerPresentation();
+            RestoreDialogueHistory(restoredDialogueHistory);
+
+            if (dialogueHistory.Length == 0)
+            {
+                AppendDialogueLine(currentFragment != null ? GetDialogueLineText(currentFragment) : "\u547c\u53eb\u4e2d.....");
+            }
+
+            if (textResult != null && !delayReminderShown)
+            {
+                textResult.gameObject.SetActive(false);
+            }
+
+            RefreshHud();
+            BuildArticyChoices();
+            CheckGreyboxResult();
+            return currentFragment != null;
+        }
+
+        private static DialogueFragment FindFragmentById(ulong fragmentId)
+        {
+            if (fragmentId == 0UL)
+            {
+                return null;
+            }
+
+            Resources.Load("ArticyDatabase");
+
+            foreach (DialogueFragment fragment in ArticyDatabase.GetAllOfType<DialogueFragment>())
+            {
+                if (fragment != null && fragment.Id == fragmentId)
+                {
+                    return fragment;
+                }
+            }
+
+            return null;
+        }
+
+        public string GetDialogueHistory()
+        {
+            return dialogueHistory.ToString();
+        }
+
+        private void ResetDialogueHistory()
+        {
+            dialogueHistory.Clear();
+            RefreshDialogueHistoryText();
+        }
+
+        private void RestoreDialogueHistory(string restoredDialogueHistory)
+        {
+            dialogueHistory.Clear();
+
+            if (!string.IsNullOrWhiteSpace(restoredDialogueHistory))
+            {
+                dialogueHistory.Append(NormalizeDisplayText(restoredDialogueHistory));
+            }
+
+            RefreshDialogueHistoryText();
+        }
+
+        private void AppendDialogueLine(string line)
+        {
+            string normalized = NormalizeDisplayText(line);
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return;
+            }
+
+            if (dialogueHistory.Length > 0)
+            {
+                dialogueHistory.AppendLine();
+                dialogueHistory.AppendLine();
+            }
+
+            dialogueHistory.Append(normalized);
+            RefreshDialogueHistoryText();
+        }
+
+        private void AppendPlayerChoice(string label)
+        {
+            string normalized = NormalizeDisplayText(label).Replace("\n", " ");
+
+            if (string.IsNullOrWhiteSpace(normalized) || IsContinueChoice(normalized))
+            {
+                return;
+            }
+
+            AppendDialogueLine($"\u4f60\uff1a{normalized}");
+        }
+
+        private static bool IsContinueChoice(string label)
+        {
+            return string.Equals(NormalizeDisplayText(label), "\u7ee7\u7eed", StringComparison.Ordinal);
+        }
+
+        private void RefreshDialogueHistoryText()
+        {
+            SetText(textDialogue, dialogueHistory.ToString());
+            ScrollDialogueToBottom();
+        }
+
+        private void ScrollDialogueToBottom()
+        {
+            if (dialogueScrollRect == null)
+            {
+                return;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            dialogueScrollRect.verticalNormalizedPosition = 0f;
+        }
+
+        private void EnsureDialogueScrollView()
+        {
+            if (textDialogue == null)
+            {
+                return;
+            }
+
+            if (dialogueScrollRect != null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            dialogueScrollRect = textDialogue.GetComponentInParent<ScrollRect>();
+
+            if (dialogueScrollRect != null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            RectTransform textRect = textDialogue.rectTransform;
+            RectTransform originalParent = textRect.parent as RectTransform;
+
+            if (originalParent == null)
+            {
+                ConfigureDialogueTextForScroll();
+                return;
+            }
+
+            int siblingIndex = textRect.GetSiblingIndex();
+            Vector2 anchorMin = textRect.anchorMin;
+            Vector2 anchorMax = textRect.anchorMax;
+            Vector2 anchoredPosition = textRect.anchoredPosition;
+            Vector2 sizeDelta = textRect.sizeDelta;
+            Vector2 pivot = textRect.pivot;
+
+            GameObject scrollObject = new GameObject("Scroll_DialogueHistory", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(ScrollRect));
+            scrollObject.transform.SetParent(originalParent, false);
+            scrollObject.transform.SetSiblingIndex(siblingIndex);
+
+            RectTransform scrollRectTransform = scrollObject.GetComponent<RectTransform>();
+            scrollRectTransform.anchorMin = anchorMin;
+            scrollRectTransform.anchorMax = anchorMax;
+            scrollRectTransform.anchoredPosition = anchoredPosition;
+            scrollRectTransform.sizeDelta = sizeDelta;
+            scrollRectTransform.pivot = pivot;
+
+            Image scrollImage = scrollObject.GetComponent<Image>();
+            scrollImage.color = new Color(0f, 0f, 0f, 0f);
+
+            GameObject viewportObject = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Mask));
+            viewportObject.transform.SetParent(scrollObject.transform, false);
+            RectTransform viewportRect = viewportObject.GetComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+            Image viewportImage = viewportObject.GetComponent<Image>();
+            viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+            viewportObject.GetComponent<Mask>().showMaskGraphic = false;
+
+            GameObject contentObject = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            contentObject.transform.SetParent(viewportObject.transform, false);
+            RectTransform contentRect = contentObject.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = Vector2.zero;
+
+            VerticalLayoutGroup layout = contentObject.GetComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            textDialogue.transform.SetParent(contentObject.transform, false);
+            dialogueScrollRect = scrollObject.GetComponent<ScrollRect>();
+            dialogueScrollRect.viewport = viewportRect;
+            dialogueScrollRect.content = contentRect;
+            dialogueScrollRect.horizontal = false;
+            dialogueScrollRect.vertical = true;
+            dialogueScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            dialogueScrollRect.scrollSensitivity = 28f;
+
+            ConfigureDialogueTextForScroll();
+        }
+
+        private void ConfigureDialogueTextForScroll()
+        {
+            if (textDialogue == null)
+            {
+                return;
+            }
+
+            RectTransform textRect = textDialogue.rectTransform;
+            textRect.anchorMin = new Vector2(0f, 1f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.pivot = new Vector2(0.5f, 1f);
+            textRect.anchoredPosition = Vector2.zero;
+            textRect.sizeDelta = new Vector2(0f, textRect.sizeDelta.y);
+            textDialogue.enableWordWrapping = true;
+            textDialogue.alignment = TextAlignmentOptions.TopLeft;
+
+            LayoutElement layoutElement = textDialogue.GetComponent<LayoutElement>();
+            if (layoutElement == null)
+            {
+                layoutElement = textDialogue.gameObject.AddComponent<LayoutElement>();
+            }
+
+            layoutElement.preferredWidth = -1f;
+            layoutElement.minHeight = 0f;
         }
 
         private string GetNpcLabel()
@@ -192,7 +463,23 @@ namespace ObituaryTomorrow.UI
             return NormalizeDisplayText($"{npcId} [Articy]");
         }
 
-        private void RefreshNpcPresentation(DialogueFragment fragment)
+        public bool RefreshCurrentArticySpeakerPresentation()
+        {
+            if (currentFragment == null)
+            {
+                Resources.Load("ArticyDatabase");
+                currentFragment = FindOpeningFragment();
+            }
+
+            return RefreshNpcPresentation(currentFragment);
+        }
+
+        public bool RefreshArticySpeakerPresentation(ulong fragmentId)
+        {
+            return RefreshNpcPresentation(FindFragmentById(fragmentId));
+        }
+
+        private bool RefreshNpcPresentation(DialogueFragment fragment)
         {
             ArticyObject speaker = GetFragmentSpeaker(fragment);
             string speakerName = GetSpeakerDisplayName(speaker);
@@ -211,6 +498,7 @@ namespace ObituaryTomorrow.UI
             }
 
             SetNpcPortrait(portraitSprite);
+            return !string.IsNullOrWhiteSpace(speakerName) || portraitSprite != null;
         }
 
         private static ArticyObject GetFragmentSpeaker(DialogueFragment fragment)
@@ -424,10 +712,46 @@ namespace ObituaryTomorrow.UI
 
             if (visibleCount == 0)
             {
-                CreateFallbackChoice("\u7ed3\u675f\u901a\u8bdd");
+                if (TryGetFirstRawContinuationTarget(currentFragment, out ArticyObject continuationTarget))
+                {
+                    CreateChoice(continuationTarget, "\u7ee7\u7eed");
+                }
+                else
+                {
+                    CreateFallbackChoice("\u7ed3\u675f\u901a\u8bdd");
+                }
             }
 
             RebuildChoiceButtonLayout();
+        }
+
+        private static bool TryGetFirstRawContinuationTarget(DialogueFragment fragment, out ArticyObject target)
+        {
+            target = null;
+
+            if (fragment == null || fragment.OutputPins == null)
+            {
+                return false;
+            }
+
+            foreach (OutputPin outputPin in fragment.OutputPins)
+            {
+                if (outputPin == null || outputPin.Connections == null)
+                {
+                    continue;
+                }
+
+                foreach (OutgoingConnection connection in outputPin.Connections)
+                {
+                    if (connection != null && connection.Target != null)
+                    {
+                        target = connection.Target;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void EnsureChoiceButtonPrefab()
@@ -568,6 +892,7 @@ namespace ObituaryTomorrow.UI
 
         private void SelectChoice(ArticyObject target, string label)
         {
+            AppendPlayerChoice(label);
             RegisterPlayerSpeech(label);
             AdvanceToArticyTarget(target);
         }
@@ -589,8 +914,8 @@ namespace ObituaryTomorrow.UI
             if (target is DialogueFragment fragment)
             {
                 currentFragment = fragment;
-                RefreshNpcPresentation(currentFragment);
-                SetText(textDialogue, GetDialogueLineText(fragment));
+                RefreshCurrentArticySpeakerPresentation();
+                AppendDialogueLine(GetDialogueLineText(fragment));
                 RefreshHud();
                 BuildArticyChoices();
                 CheckGreyboxResult();
@@ -598,7 +923,13 @@ namespace ObituaryTomorrow.UI
             }
 
             List<ArticyObject> resolvedTargets = new List<ArticyObject>();
-            AddPlayableTargets(target, resolvedTargets, new HashSet<ulong>());
+            HashSet<ulong> visitedIds = new HashSet<ulong>();
+            if (currentFragment != null)
+            {
+                visitedIds.Add(currentFragment.Id);
+            }
+
+            AddPlayableTargets(target, resolvedTargets, visitedIds);
 
             if (resolvedTargets.Count > 0)
             {
@@ -824,8 +1155,8 @@ namespace ObituaryTomorrow.UI
 
         private void SelectFallbackChoice(string label)
         {
+            AppendPlayerChoice(label);
             RegisterPlayerSpeech(label);
-            SetText(textDialogue, label);
             RefreshHud();
             CheckGreyboxResult();
         }
@@ -917,7 +1248,7 @@ namespace ObituaryTomorrow.UI
 
             if (textDialogue != null)
             {
-                textDialogue.text = $"{textDialogue.text}\n\n{message}";
+                AppendDialogueLine(message);
             }
         }
         private void ClearChoiceButtons()
@@ -1114,7 +1445,7 @@ namespace ObituaryTomorrow.UI
                 return targets;
             }
 
-            AddOutputPinTargets(fragment.OutputPins, targets, new HashSet<ulong>());
+            AddOutputPinTargets(fragment.OutputPins, targets, new HashSet<ulong> { fragment.Id });
             return targets;
         }
 
@@ -1366,7 +1697,7 @@ namespace ObituaryTomorrow.UI
 
             if (target is Dialogue targetDialogue)
             {
-                DialogueFragment firstChild = FindFirstDescendantDialogueFragment(targetDialogue.Id, new HashSet<ulong>());
+                DialogueFragment firstChild = FindFirstDescendantDialogueFragmentSkipping(targetDialogue.Id, visitedIds);
 
                 if (firstChild != null)
                 {
@@ -1406,7 +1737,7 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            DialogueFragment childFragment = FindFirstChildDialogueFragment(target.Id);
+            DialogueFragment childFragment = FindFirstChildDialogueFragmentSkipping(target.Id, visitedIds);
 
             if (childFragment != null)
             {
@@ -1625,11 +1956,16 @@ namespace ObituaryTomorrow.UI
 
         private static DialogueFragment FindFirstChildDialogueFragment(ulong parentId)
         {
+            return FindFirstChildDialogueFragmentSkipping(parentId, null);
+        }
+
+        private static DialogueFragment FindFirstChildDialogueFragmentSkipping(ulong parentId, HashSet<ulong> skipIds)
+        {
             DialogueFragment firstChild = null;
 
             foreach (DialogueFragment fragment in ArticyDatabase.GetAllOfType<DialogueFragment>())
             {
-                if (fragment == null || fragment.ParentId != parentId)
+                if (fragment == null || fragment.ParentId != parentId || (skipIds != null && skipIds.Contains(fragment.Id)))
                 {
                     continue;
                 }
@@ -1641,6 +1977,60 @@ namespace ObituaryTomorrow.UI
             }
 
             return firstChild;
+        }
+
+        private static DialogueFragment FindFirstDescendantDialogueFragmentSkipping(ulong parentId, HashSet<ulong> skipIds)
+        {
+            return FindFirstDescendantDialogueFragmentSkipping(parentId, new HashSet<ulong>(), skipIds);
+        }
+
+        private static DialogueFragment FindFirstDescendantDialogueFragmentSkipping(ulong parentId, HashSet<ulong> traversalVisitedIds, HashSet<ulong> skipIds)
+        {
+            if (!traversalVisitedIds.Add(parentId))
+            {
+                return null;
+            }
+
+            DialogueFragment directChild = FindFirstChildDialogueFragmentSkipping(parentId, skipIds);
+
+            if (directChild != null)
+            {
+                return directChild;
+            }
+
+            DialogueFragment firstDescendant = null;
+
+            foreach (Dialogue dialogue in ArticyDatabase.GetAllOfType<Dialogue>())
+            {
+                if (dialogue == null || dialogue.ParentId != parentId)
+                {
+                    continue;
+                }
+
+                DialogueFragment descendant = FindFirstDescendantDialogueFragmentSkipping(dialogue.Id, traversalVisitedIds, skipIds);
+
+                if (descendant != null && (firstDescendant == null || descendant.Id < firstDescendant.Id))
+                {
+                    firstDescendant = descendant;
+                }
+            }
+
+            foreach (FlowFragment flowFragment in ArticyDatabase.GetAllOfType<FlowFragment>())
+            {
+                if (flowFragment == null || flowFragment.ParentId != parentId)
+                {
+                    continue;
+                }
+
+                DialogueFragment descendant = FindFirstDescendantDialogueFragmentSkipping(flowFragment.Id, traversalVisitedIds, skipIds);
+
+                if (descendant != null && (firstDescendant == null || descendant.Id < firstDescendant.Id))
+                {
+                    firstDescendant = descendant;
+                }
+            }
+
+            return firstDescendant;
         }
 
         private static DialogueFragment FindFirstDescendantDialogueFragment(ulong parentId, HashSet<ulong> visitedIds)

@@ -173,6 +173,43 @@ namespace ObituaryTomorrow.Gameplay.Player
                 reason);
         }
 
+        public void RestoreRuntimeData(PlayerRuntimeData data, bool raiseEvents = true)
+        {
+            if (data == null)
+            {
+                return;
+            }
+
+            EnsureRuntimeData();
+
+            int oldStress = RuntimeData.CurrentStress;
+            int oldCigarettes = RuntimeData.CigaretteCount;
+
+            RuntimeData.Perception = Mathf.Max(1, data.Perception);
+            RuntimeData.Logic = Mathf.Max(1, data.Logic);
+            RuntimeData.Insight = Mathf.Max(1, data.Insight);
+            RuntimeData.Resilience = Mathf.Max(1, data.Resilience);
+            RuntimeData.MaxStress = Mathf.Max(1, data.MaxStress);
+            RuntimeData.CurrentStress = Mathf.Clamp(data.CurrentStress, 0, RuntimeData.MaxStress);
+            RuntimeData.MaxCigaretteCount = Mathf.Max(0, data.MaxCigaretteCount);
+            RuntimeData.CigaretteCount = Mathf.Clamp(data.CigaretteCount, 0, RuntimeData.MaxCigaretteCount);
+            RuntimeData.SetPersonalityTags(data.PersonalityTags);
+
+            if (GameManager.Instance != null && GameManager.Instance.Session != null)
+            {
+                GameManager.Instance.Session.Player = RuntimeData;
+            }
+
+            if (!raiseEvents)
+            {
+                return;
+            }
+
+            GameEventBus.RaisePlayerStressChanged(
+                new StressChangedEventArgs(oldStress, RuntimeData.CurrentStress, RuntimeData.MaxStress, StatChangeReason.Debug));
+            GameEventBus.RaiseCigaretteChanged(
+                new CigaretteChangedEventArgs(oldCigarettes, RuntimeData.CigaretteCount, RuntimeData.MaxCigaretteCount, StatChangeReason.Debug));
+        }
         private void EnsureRuntimeData()
         {
             if (RuntimeData != null)
