@@ -58,11 +58,6 @@ namespace ObituaryTomorrow.Gameplay.Items
                 return OperationResult.Fail("No cigarettes left.");
             }
 
-            if (RuntimeData.CurrentStress <= 0)
-            {
-                return OperationResult.Fail("Stress is already zero.");
-            }
-
             return OperationResult.Ok("Cigarette can be used.");
         }
 

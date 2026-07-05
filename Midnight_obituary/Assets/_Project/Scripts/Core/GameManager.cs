@@ -41,13 +41,17 @@ namespace ObituaryTomorrow.Core
             ChangeState(GameState.Boot);
         }
 
-        public void StartNewGame(NewGameRequest request)
+        public void PrepareNewGame(NewGameRequest request)
         {
             Session = new GameSessionData();
             Session.PlayerCardsConfirmed = false;
             Session.Player.SetPersonalityTags(Array.Empty<PersonalityTag>());
-
             ChangeState(GameState.Opening);
+        }
+
+        public void StartNewGame(NewGameRequest request)
+        {
+            PrepareNewGame(request);
             EnterMainRoom();
         }
 

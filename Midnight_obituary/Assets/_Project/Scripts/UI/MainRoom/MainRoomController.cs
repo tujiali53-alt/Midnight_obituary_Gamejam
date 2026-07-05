@@ -62,6 +62,13 @@ namespace ObituaryTomorrow.UI
         [Header("Smoking Animation")]
         [SerializeField] private SmokingAnimationController smokingAnimationController;
 
+        [Header("Smoking Tips")]
+        [SerializeField] private GameObject panelTips;
+        [SerializeField] private GameObject noStressText;
+        [SerializeField] private GameObject noSmokingText;
+        [SerializeField] private float smokingTipDisplaySeconds = 2f;
+        [SerializeField] private float smokingTipFadeOutSeconds = 0.5f;
+
         [Header("Card Selection")]
         [SerializeField] private SelectCardController selectCardController;
 
@@ -145,12 +152,15 @@ namespace ObituaryTomorrow.UI
         private bool inCall;
         private int deepRescueSuccessCount;
         private Coroutine diceAnimationRoutine;
+        private Coroutine smokingTipHideRoutine;
+        private CanvasGroup panelTipsCanvasGroup;
 
         private void Awake()
         {
             ResolveGameplayReferences();
             ResolveSceneReferences();
             EnsureSelectCardController();
+            HideSmokingTips();
         }
 
         private void OnEnable()
@@ -218,6 +228,12 @@ namespace ObituaryTomorrow.UI
             }
 
             ClearChoiceButtons();
+
+            if (smokingTipHideRoutine != null)
+            {
+                StopCoroutine(smokingTipHideRoutine);
+                smokingTipHideRoutine = null;
+            }
         }
 
         private void Start()
@@ -227,6 +243,7 @@ namespace ObituaryTomorrow.UI
             deepRescueSuccessCount = 0;
 
             HideAllPopups();
+            HideSmokingTips();
             ResetDialogueArea();
             RefreshStaticTexts();
             InitializeCardSelection();
@@ -587,11 +604,22 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            if (cigaretteSystem.Count <= 0)
+            PlayerRuntimeData playerData = GetPlayerRuntimeData();
+            int currentStress = playerData != null ? playerData.CurrentStress : 0;
+
+            if (currentStress <= 0)
             {
-                ShowDialoguePrompt("\u6ca1\u6709\u9999\u70df\u4e86\u3002");
+                ShowSmokingTip(noStressText);
                 return;
             }
+
+            if (cigaretteSystem.Count <= 0)
+            {
+                ShowSmokingTip(noSmokingText);
+                return;
+            }
+
+            HideSmokingTips();
 
             OperationResult requestResult = cigaretteSystem.RequestUseCigarette();
             if (!requestResult.Success)
@@ -612,6 +640,116 @@ namespace ObituaryTomorrow.UI
             {
                 ConfirmSmoke();
             }
+        }
+
+        private void ShowSmokingTip(GameObject tipObject)
+        {
+            if (tipObject == null)
+            {
+                return;
+            }
+
+            if (smokingTipHideRoutine != null)
+            {
+                StopCoroutine(smokingTipHideRoutine);
+                smokingTipHideRoutine = null;
+            }
+
+            if (noStressText != null)
+            {
+                noStressText.SetActive(false);
+            }
+
+            if (noSmokingText != null)
+            {
+                noSmokingText.SetActive(false);
+            }
+
+            if (panelTips != null)
+            {
+                panelTips.SetActive(true);
+            }
+
+            tipObject.SetActive(true);
+            ResetPanelTipsAlpha();
+            smokingTipHideRoutine = StartCoroutine(HideSmokingTipAfterDelay());
+        }
+
+        private IEnumerator HideSmokingTipAfterDelay()
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, smokingTipDisplaySeconds));
+
+            CanvasGroup canvasGroup = EnsurePanelTipsCanvasGroup();
+            if (canvasGroup == null)
+            {
+                HideSmokingTips();
+                yield break;
+            }
+
+            float fadeDuration = Mathf.Max(0.01f, smokingTipFadeOutSeconds);
+            float elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                canvasGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+                yield return null;
+            }
+
+            HideSmokingTips();
+        }
+
+        private void HideSmokingTips()
+        {
+            if (smokingTipHideRoutine != null)
+            {
+                StopCoroutine(smokingTipHideRoutine);
+                smokingTipHideRoutine = null;
+            }
+
+            if (noStressText != null)
+            {
+                noStressText.SetActive(false);
+            }
+
+            if (noSmokingText != null)
+            {
+                noSmokingText.SetActive(false);
+            }
+
+            if (panelTips != null)
+            {
+                panelTips.SetActive(false);
+            }
+
+            ResetPanelTipsAlpha();
+        }
+
+        private void ResetPanelTipsAlpha()
+        {
+            CanvasGroup canvasGroup = EnsurePanelTipsCanvasGroup();
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = 1f;
+            }
+        }
+
+        private CanvasGroup EnsurePanelTipsCanvasGroup()
+        {
+            if (panelTips == null)
+            {
+                return null;
+            }
+
+            if (panelTipsCanvasGroup == null)
+            {
+                panelTipsCanvasGroup = panelTips.GetComponent<CanvasGroup>();
+                if (panelTipsCanvasGroup == null)
+                {
+                    panelTipsCanvasGroup = panelTips.AddComponent<CanvasGroup>();
+                }
+            }
+
+            return panelTipsCanvasGroup;
         }
 
         private void OnSmokingAnimationComplete()
@@ -1135,8 +1273,7 @@ namespace ObituaryTomorrow.UI
 
             if (buttonSmoking != null)
             {
-                bool hasCigarettes = cigaretteSystem != null && cigaretteSystem.Count > 0;
-                buttonSmoking.interactable = allowDeskInteraction && hasCigarettes;
+                buttonSmoking.interactable = !cardSelectionBlocking;
             }
 
             if (buttonDiceTest != null)
@@ -1408,6 +1545,9 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref imageLogic, FindComponentByObjectName<Image>("LogicImage"));
             AssignIfMissing(ref imagePractical, FindComponentByObjectName<Image>("practicalImage"));
             AssignIfMissing(ref imageIdeal, FindComponentByObjectName<Image>("IdealImage"));
+            AssignIfMissing(ref panelTips, FindGameObjectByName("Panel_Tips"));
+            AssignIfMissing(ref noStressText, FindGameObjectByName("NoStress_Text"));
+            AssignIfMissing(ref noSmokingText, FindGameObjectByName("NoSmoking_Text"));
             EnsureDiceFaceObjects();
             if (dialogueAreaRoot != null && callGreyboxController == null)
             {
