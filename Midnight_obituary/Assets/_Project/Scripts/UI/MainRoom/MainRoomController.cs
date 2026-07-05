@@ -61,12 +61,16 @@ namespace ObituaryTomorrow.UI
         [Header("Popup Buttons")]
         [SerializeField] private Button buttonConfirmMission;
         [SerializeField] private Button buttonReturnMainMenu;
+        [SerializeField] private Button buttonCloseSettings;
         [SerializeField] private Button[] buttonClosePopups;
         [SerializeField] private Button buttonConfirmResult;
 
         [Header("Popup Panels")]
         [SerializeField] private GameObject panelPopupRoot;
         [SerializeField] private GameObject panelSettings;
+        [SerializeField] private GameObject panelTutorial;
+        [SerializeField] private Button buttonTutorial;
+        [SerializeField] private Button buttonTutorialConfirm;
         [SerializeField] private GameObject panelNewspaper;
         [SerializeField] private GameObject panelYellowPages;
         [SerializeField] private GameObject panelTaskBook;
@@ -87,6 +91,8 @@ namespace ObituaryTomorrow.UI
 
         [Header("Card Selection")]
         [SerializeField] private SelectCardController selectCardController;
+        [SerializeField] private PlayerCardMessageController playerCardMessageController;
+        [SerializeField] private GameObject panelCardMessage;
 
         [Header("HUD Texts")]
         [SerializeField] private TextMeshProUGUI textHud;
@@ -207,9 +213,12 @@ namespace ObituaryTomorrow.UI
             AddListener(buttonSmoking, StartSmoking);
             AddListener(buttonDiceTest, RollDiceTest);
             AddListener(buttonConfirmMission, ConfirmMission);
-            AddListener(buttonReturnMainMenu, ReturnToMainMenu);
+            AddListener(buttonReturnMainMenu, QuitGame);
+            AddListener(buttonCloseSettings, CloseSettings);
             AddListeners(buttonClosePopups, ClosePopup);
             AddListener(buttonConfirmResult, ConfirmResult);
+            AddListener(buttonTutorial, OpenTutorial);
+            AddListener(buttonTutorialConfirm, CloseTutorial);
 
             EnsureSelectCardController();
             if (selectCardController != null)
@@ -248,9 +257,12 @@ namespace ObituaryTomorrow.UI
             RemoveListener(buttonSmoking, StartSmoking);
             RemoveListener(buttonDiceTest, RollDiceTest);
             RemoveListener(buttonConfirmMission, ConfirmMission);
-            RemoveListener(buttonReturnMainMenu, ReturnToMainMenu);
+            RemoveListener(buttonReturnMainMenu, QuitGame);
+            RemoveListener(buttonCloseSettings, CloseSettings);
             RemoveListeners(buttonClosePopups, ClosePopup);
             RemoveListener(buttonConfirmResult, ConfirmResult);
+            RemoveListener(buttonTutorial, OpenTutorial);
+            RemoveListener(buttonTutorialConfirm, CloseTutorial);
 
             if (selectCardController != null)
             {
@@ -284,7 +296,16 @@ namespace ObituaryTomorrow.UI
         private void InitializeCardSelection()
         {
             EnsureSelectCardController();
+            EnsurePlayerCardMessageController();
             selectCardController?.Initialize();
+        }
+
+        private void EnsurePlayerCardMessageController()
+        {
+            if (playerCardMessageController == null)
+            {
+                playerCardMessageController = FindFirstObjectByType<PlayerCardMessageController>(FindObjectsInactive.Include);
+            }
         }
 
         private void OnCardSelectionCompleted()
@@ -356,6 +377,19 @@ namespace ObituaryTomorrow.UI
         private void OpenSettings()
         {
             OpenPopup(panelSettings, GameState.MainRoom);
+        }
+
+        private void OpenTutorial()
+        {
+            SetPanelVisible(panelPopupRoot, true);
+            SetPanelVisible(panelSettings, false);
+            SetPanelVisible(panelTutorial, true);
+        }
+
+        private void CloseTutorial()
+        {
+            SetPanelVisible(panelTutorial, false);
+            SetPanelVisible(panelSettings, true);
         }
 
         private void OpenNewspaper()
@@ -734,6 +768,29 @@ namespace ObituaryTomorrow.UI
             }
         }
 
+        private void CloseSettings()
+        {
+            SetPanelVisible(panelTutorial, false);
+            SetPanelVisible(panelSettings, false);
+            SetPanelVisible(panelPopupRoot, false);
+
+            if (!inCall && GameManager.Instance != null)
+            {
+                GameManager.Instance.ChangeState(GameState.MainRoom);
+            }
+        }
+
+        private void QuitGame()
+        {
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError("GameManager is missing. Cannot quit game.");
+                return;
+            }
+
+            GameManager.Instance.QuitGame();
+        }
+
         private void ReturnToMainMenu()
         {
             if (GameManager.Instance == null)
@@ -814,11 +871,7 @@ namespace ObituaryTomorrow.UI
                 noSmokingText.SetActive(false);
             }
 
-            if (panelTips != null)
-            {
-                panelTips.SetActive(true);
-            }
-
+            EnsurePanelTipsVisible();
             tipObject.SetActive(true);
             ResetPanelTipsAlpha();
             smokingTipHideRoutine = StartCoroutine(HideSmokingTipAfterDelay());
@@ -865,11 +918,6 @@ namespace ObituaryTomorrow.UI
                 noSmokingText.SetActive(false);
             }
 
-            if (panelTips != null)
-            {
-                panelTips.SetActive(false);
-            }
-
             ResetPanelTipsAlpha();
         }
 
@@ -879,6 +927,14 @@ namespace ObituaryTomorrow.UI
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 1f;
+            }
+        }
+
+        private void EnsurePanelTipsVisible()
+        {
+            if (panelTips != null && !panelTips.activeSelf)
+            {
+                panelTips.SetActive(true);
             }
         }
 
@@ -1300,6 +1356,7 @@ namespace ObituaryTomorrow.UI
         {
             SetPanelVisible(panelPopupRoot, false);
             SetPanelVisible(panelSettings, false);
+            SetPanelVisible(panelTutorial, false);
             SetPanelVisible(panelNewspaper, false);
             SetPanelVisible(panelYellowPages, false);
             SetPanelVisible(panelTaskBook, false);
@@ -1307,6 +1364,7 @@ namespace ObituaryTomorrow.UI
             SetPanelVisible(panelAchievement, false);
             SetPanelVisible(panelSave, false);
             SetPanelVisible(panelResult, false);
+            SetPanelVisible(panelCardMessage, false);
         }
 
 
@@ -1762,9 +1820,24 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonSmoking, FindComponentByObjectName<Button>("Button_Smoking"));
             AssignIfMissing(ref buttonDiceTest, FindOrAddButtonByObjectName("DiceTest"));
             AssignIfMissing(ref buttonReturnMainMenu, FindComponentByObjectName<Button>("Button_Return"));
-
-            AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
             AssignIfMissing(ref panelPopupRoot, FindGameObjectByName("Panel_PopupRoot"));
+            AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
+            AssignIfMissing(ref panelTutorial, FindGameObjectByName("Panel_Tutorial"));
+            AssignIfMissing(ref buttonTutorial, FindComponentByObjectName<Button>("Button_Tutorial"));
+            if (panelSettings != null)
+            {
+                AssignIfMissing(
+                    ref buttonCloseSettings,
+                    FindComponentInChildren<Button>(panelSettings.transform, "Button_CloseSettings"));
+            }
+
+            if (panelTutorial != null)
+            {
+                AssignIfMissing(
+                    ref buttonTutorialConfirm,
+                    FindComponentInChildren<Button>(panelTutorial.transform, "Button_Comfirm"));
+            }
+
             AssignIfMissing(ref panelSave, FindGameObjectByName("Panel_Save"));
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));
             AssignIfMissing(ref imageNpcPortrait, FindComponentByObjectName<Image>("Image_NpcPortrait"));
@@ -1789,6 +1862,8 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref panelTips, FindGameObjectByName("Panel_Tips"));
             AssignIfMissing(ref noStressText, FindGameObjectByName("NoStress_Text"));
             AssignIfMissing(ref noSmokingText, FindGameObjectByName("NoSmoking_Text"));
+            AssignIfMissing(ref panelCardMessage, FindGameObjectByName("Panel_CardMessage"));
+            EnsurePlayerCardMessageController();
             EnsureDiceFaceObjects();
             if (dialogueAreaRoot != null && callGreyboxController == null)
             {
@@ -1825,6 +1900,36 @@ namespace ObituaryTomorrow.UI
         {
             Transform transform = FindTransformByName(objectName);
             return transform != null ? transform.GetComponent<T>() : null;
+        }
+
+        private static T FindComponentInChildren<T>(Transform root, string objectName) where T : Component
+        {
+            Transform transform = FindChildTransform(root, objectName);
+            return transform != null ? transform.GetComponent<T>() : null;
+        }
+
+        private static Transform FindChildTransform(Transform root, string childName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            if (root.name == childName)
+            {
+                return root;
+            }
+
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform found = FindChildTransform(root.GetChild(i), childName);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private static Transform FindTransformByName(string objectName)

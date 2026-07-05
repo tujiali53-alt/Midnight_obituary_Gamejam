@@ -9,6 +9,13 @@ namespace ObituaryTomorrow.UI
 {
     public sealed class SelectCardController : MonoBehaviour
     {
+        [Serializable]
+        private struct CardDialogueSpriteMapping
+        {
+            public PersonalityTag tag;
+            public Sprite dialogueButtonSprite;
+        }
+
         [Header("Panels")]
         [SerializeField] private GameObject selectCardPanel;
         [SerializeField] private GameObject cardPanel;
@@ -22,12 +29,18 @@ namespace ObituaryTomorrow.UI
         [SerializeField] private Image resultCard01;
         [SerializeField] private Image resultCard02;
 
+        [Header("Dialogue Area Card Buttons")]
+        [SerializeField] private Image dialogueButtonImage01;
+        [SerializeField] private Image dialogueButtonImage02;
+        [SerializeField] private CardDialogueSpriteMapping[] dialogueSpriteMappings = new CardDialogueSpriteMapping[4];
+
+        [Header("Card Message")]
+        [SerializeField] private PlayerCardMessageController cardMessageController;
+
         [Header("Gameplay")]
         [SerializeField] private PlayerManager playerManager;
 
         private readonly List<CardOption> cardOptions = new List<CardOption>();
-        private Image dialogueCard01;
-        private Image dialogueCard02;
         private Image popupCard01;
         private Image popupCard02;
 
@@ -107,6 +120,7 @@ namespace ObituaryTomorrow.UI
 
             ClearImage(resultCard01);
             ClearImage(resultCard02);
+            cardMessageController?.ClearSelectedCards();
         }
 
         private void PerformGacha()
@@ -157,10 +171,14 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            ApplySprite(dialogueCard01, selectedSprite01);
-            ApplySprite(dialogueCard02, selectedSprite02);
+            ApplyDialogueButtonSprites(selectedTag01, selectedTag02);
             ApplySprite(popupCard01, selectedSprite01);
             ApplySprite(popupCard02, selectedSprite02);
+            cardMessageController?.SetSelectedCards(
+                selectedSprite01,
+                selectedSprite02,
+                selectedTag01,
+                selectedTag02);
 
             PersonalityTag[] selectedTags = { selectedTag01, selectedTag02 };
             GameSessionData session = GameManager.Instance?.Session;
@@ -190,10 +208,36 @@ namespace ObituaryTomorrow.UI
                 return;
             }
 
-            ApplySprite(dialogueCard01, GetSpriteForTag(tags[0]));
-            ApplySprite(dialogueCard02, GetSpriteForTag(tags[1]));
-            ApplySprite(popupCard01, GetSpriteForTag(tags[0]));
-            ApplySprite(popupCard02, GetSpriteForTag(tags[1]));
+            Sprite sprite01 = GetSpriteForTag(tags[0]);
+            Sprite sprite02 = GetSpriteForTag(tags[1]);
+
+            ApplyDialogueButtonSprites(tags[0], tags[1]);
+            ApplySprite(popupCard01, sprite01);
+            ApplySprite(popupCard02, sprite02);
+            cardMessageController?.SetSelectedCards(sprite01, sprite02, tags[0], tags[1]);
+        }
+
+        private void ApplyDialogueButtonSprites(PersonalityTag tag01, PersonalityTag tag02)
+        {
+            ApplySprite(dialogueButtonImage01, GetDialogueSpriteForTag(tag01));
+            ApplySprite(dialogueButtonImage02, GetDialogueSpriteForTag(tag02));
+        }
+
+        private Sprite GetDialogueSpriteForTag(PersonalityTag tag)
+        {
+            if (dialogueSpriteMappings != null)
+            {
+                for (int i = 0; i < dialogueSpriteMappings.Length; i++)
+                {
+                    if (dialogueSpriteMappings[i].tag == tag
+                        && dialogueSpriteMappings[i].dialogueButtonSprite != null)
+                    {
+                        return dialogueSpriteMappings[i].dialogueButtonSprite;
+                    }
+                }
+            }
+
+            return GetSpriteForTag(tag);
         }
 
         private Sprite GetSpriteForTag(PersonalityTag tag)
@@ -275,9 +319,37 @@ namespace ObituaryTomorrow.UI
             Transform dialogueArea = FindTransformByName("Panel_DialogueArea");
             if (dialogueArea != null)
             {
-                dialogueCard01 = FindImageInChildren(dialogueArea, "PlyerCard01");
-                dialogueCard02 = FindImageInChildren(dialogueArea, "PlayerCard02");
+                Transform dialogueImageArea = FindChildTransform(dialogueArea, "DialogImage_Area");
+                Transform dialogueButtonRoot = dialogueImageArea != null ? dialogueImageArea : dialogueArea;
+
+                AssignIfMissing(
+                    ref dialogueButtonImage01,
+                    FindButtonImageInChildren(dialogueButtonRoot, "Button_PlayerCard01"));
+                AssignIfMissing(
+                    ref dialogueButtonImage02,
+                    FindButtonImageInChildren(dialogueButtonRoot, "Button_PlayerCard02"));
+
+                if (dialogueButtonImage01 == null)
+                {
+                    AssignIfMissing(
+                        ref dialogueButtonImage01,
+                        FindButtonImageInChildren(dialogueArea, "Button_PlayerCard01"));
+                }
+
+                if (dialogueButtonImage02 == null)
+                {
+                    AssignIfMissing(
+                        ref dialogueButtonImage02,
+                        FindButtonImageInChildren(dialogueArea, "Button_PlayerCard02"));
+                }
             }
+
+            if (cardMessageController == null)
+            {
+                cardMessageController = FindFirstObjectByType<PlayerCardMessageController>(FindObjectsInactive.Include);
+            }
+
+            EnsureDefaultDialogueSpriteMappings();
 
             Transform popupRoot = FindTransformByName("Panel_PopupRoot");
             Transform popupCardPanel = popupRoot != null ? FindChildTransform(popupRoot, "Panel_Card") : null;
@@ -400,6 +472,47 @@ namespace ObituaryTomorrow.UI
             }
 
             return null;
+        }
+
+        private void EnsureDefaultDialogueSpriteMappings()
+        {
+            if (dialogueSpriteMappings == null || dialogueSpriteMappings.Length == 0)
+            {
+                dialogueSpriteMappings = CreateDefaultDialogueSpriteMappings();
+                return;
+            }
+
+            bool hasAnyTag = false;
+            for (int i = 0; i < dialogueSpriteMappings.Length; i++)
+            {
+                if (dialogueSpriteMappings[i].tag != default)
+                {
+                    hasAnyTag = true;
+                    break;
+                }
+            }
+
+            if (!hasAnyTag)
+            {
+                dialogueSpriteMappings = CreateDefaultDialogueSpriteMappings();
+            }
+        }
+
+        private static CardDialogueSpriteMapping[] CreateDefaultDialogueSpriteMappings()
+        {
+            return new[]
+            {
+                new CardDialogueSpriteMapping { tag = PersonalityTag.Emotional },
+                new CardDialogueSpriteMapping { tag = PersonalityTag.Rational },
+                new CardDialogueSpriteMapping { tag = PersonalityTag.Idealistic },
+                new CardDialogueSpriteMapping { tag = PersonalityTag.Practical }
+            };
+        }
+
+        private static Image FindButtonImageInChildren(Transform root, string buttonName)
+        {
+            Transform buttonTransform = FindChildTransform(root, buttonName);
+            return buttonTransform != null ? buttonTransform.GetComponent<Image>() : null;
         }
 
         private static Image FindImageInChildren(Transform root, string objectName)
