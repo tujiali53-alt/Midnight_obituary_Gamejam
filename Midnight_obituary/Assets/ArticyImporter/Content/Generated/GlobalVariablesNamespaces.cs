@@ -270,3 +270,216 @@ namespace Articy.ArticyProject.GlobalVariables
         }
     }
 }
+namespace Articy.ArticyProject.GlobalVariables
+{
+    
+    
+    [Serializable()]
+    public class julian : IArticyNamespace
+    {
+        
+        [SerializeField()]
+        private BaseGlobalVariables _VariableStorage;
+        
+        // 你是天使
+        public bool you_are_angel
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(17);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(17, value);
+            }
+        }
+        
+        // 提及房顶门
+        public bool roof_door
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(18);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(18, value);
+            }
+        }
+        
+        // 朱利安觉得你可以信任
+        public bool trustworthy
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(19);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(19, value);
+            }
+        }
+        
+        // 朱利安提出等下告诉你
+        public bool maybe_later
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(20);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(20, value);
+            }
+        }
+        
+        // 聊过那首诗
+        public bool the_poem
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(21);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(21, value);
+            }
+        }
+        
+        // 聊过父亲
+        public bool father
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(22);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(22, value);
+            }
+        }
+        
+        // 得知伍尔夫的生平
+        public bool woolf
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(23);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(23, value);
+            }
+        }
+        
+        // 聊过丹尼尔
+        public bool daniel
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(24);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(24, value);
+            }
+        }
+        
+        // 提出让他想象未来
+        public bool imagine_future
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(25);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(25, value);
+            }
+        }
+        
+        // 提出有人会理解他
+        public bool someone_will
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(26);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(26, value);
+            }
+        }
+        
+        // 坏结局
+        public bool be
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(27);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(27, value);
+            }
+        }
+        
+        // 好结局
+        public bool he
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(28);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(28, value);
+            }
+        }
+        
+        // 普通结局
+        public bool ne
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(29);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(29, value);
+            }
+        }
+        
+        // 真结局
+        public bool te
+        {
+            get
+            {
+                return _VariableStorage.Internal_GetVariableValueBoolean(30);
+            }
+            set
+            {
+                _VariableStorage.Internal_SetVariableValueBoolean(30, value);
+            }
+        }
+        
+        public void RegisterVariables(BaseGlobalVariables aStorage)
+        {
+            _VariableStorage = aStorage;
+            aStorage.RegisterVariable("julian.you_are_angel", false);
+            aStorage.RegisterVariable("julian.roof_door", false);
+            aStorage.RegisterVariable("julian.trustworthy", false);
+            aStorage.RegisterVariable("julian.maybe_later", false);
+            aStorage.RegisterVariable("julian.the_poem", false);
+            aStorage.RegisterVariable("julian.father", false);
+            aStorage.RegisterVariable("julian.woolf", false);
+            aStorage.RegisterVariable("julian.daniel", false);
+            aStorage.RegisterVariable("julian.imagine_future", false);
+            aStorage.RegisterVariable("julian.someone_will", false);
+            aStorage.RegisterVariable("julian.be", false);
+            aStorage.RegisterVariable("julian.he", false);
+            aStorage.RegisterVariable("julian.ne", false);
+            aStorage.RegisterVariable("julian.te", false);
+        }
+    }
+}

@@ -28,6 +28,10 @@ namespace Articy.ArticyProject.GlobalVariables
         [HideInInspector()]
         private edward mEdward = new edward();
         
+        [SerializeField()]
+        [HideInInspector()]
+        private julian mJulian = new julian();
+        
         #region Initialize static VariableName set
         static ArticyGlobalVariables()
         {
@@ -48,6 +52,20 @@ namespace Articy.ArticyProject.GlobalVariables
             variableNames.Add("edward.he");
             variableNames.Add("edward.ne");
             variableNames.Add("edward.be");
+            variableNames.Add("julian.you_are_angel");
+            variableNames.Add("julian.roof_door");
+            variableNames.Add("julian.trustworthy");
+            variableNames.Add("julian.maybe_later");
+            variableNames.Add("julian.the_poem");
+            variableNames.Add("julian.father");
+            variableNames.Add("julian.woolf");
+            variableNames.Add("julian.daniel");
+            variableNames.Add("julian.imagine_future");
+            variableNames.Add("julian.someone_will");
+            variableNames.Add("julian.be");
+            variableNames.Add("julian.he");
+            variableNames.Add("julian.ne");
+            variableNames.Add("julian.te");
         }
         #endregion
         
@@ -56,6 +74,14 @@ namespace Articy.ArticyProject.GlobalVariables
             get
             {
                 return mEdward;
+            }
+        }
+        
+        public julian julian
+        {
+            get
+            {
+                return mJulian;
             }
         }
         
@@ -70,6 +96,7 @@ namespace Articy.ArticyProject.GlobalVariables
         public override void Init()
         {
             edward.RegisterVariables(this);
+            julian.RegisterVariables(this);
         }
         
         public static ArticyGlobalVariables CreateGlobalVariablesClone()
