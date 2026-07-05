@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -43,11 +44,8 @@ namespace ObituaryTomorrow.Core
         public void StartNewGame(NewGameRequest request)
         {
             Session = new GameSessionData();
-            Session.Player.SetPersonalityTags(new[]
-            {
-                PersonalityTag.Emotional,
-                PersonalityTag.Practical
-            });
+            Session.PlayerCardsConfirmed = false;
+            Session.Player.SetPersonalityTags(Array.Empty<PersonalityTag>());
 
             ChangeState(GameState.Opening);
             EnterMainRoom();

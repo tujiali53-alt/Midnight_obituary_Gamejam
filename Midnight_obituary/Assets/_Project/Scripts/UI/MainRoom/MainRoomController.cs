@@ -41,6 +41,7 @@ namespace ObituaryTomorrow.UI
 
         [Header("Popup Buttons")]
         [SerializeField] private Button buttonConfirmMission;
+        [SerializeField] private Button buttonReturnMainMenu;
         [SerializeField] private Button[] buttonClosePopups;
         [SerializeField] private Button buttonConfirmResult;
 
@@ -56,6 +57,9 @@ namespace ObituaryTomorrow.UI
 
         [Header("Smoking Animation")]
         [SerializeField] private SmokingAnimationController smokingAnimationController;
+
+        [Header("Card Selection")]
+        [SerializeField] private SelectCardController selectCardController;
 
         [Header("HUD Texts")]
         [SerializeField] private TextMeshProUGUI textHud;
@@ -140,6 +144,7 @@ namespace ObituaryTomorrow.UI
         {
             ResolveGameplayReferences();
             ResolveSceneReferences();
+            EnsureSelectCardController();
         }
 
         private void OnEnable()
@@ -159,8 +164,23 @@ namespace ObituaryTomorrow.UI
             AddListener(buttonSmoking, StartSmoking);
             AddListener(buttonDiceTest, RollDiceTest);
             AddListener(buttonConfirmMission, ConfirmMission);
+            AddListener(buttonReturnMainMenu, ReturnToMainMenu);
             AddListeners(buttonClosePopups, ClosePopup);
             AddListener(buttonConfirmResult, ConfirmResult);
+
+            EnsureSelectCardController();
+            if (selectCardController != null)
+            {
+                selectCardController.SelectionCompleted += OnCardSelectionCompleted;
+            }
+        }
+
+        private void EnsureSelectCardController()
+        {
+            if (selectCardController == null)
+            {
+                selectCardController = FindFirstObjectByType<SelectCardController>();
+            }
         }
 
         private void OnDisable()
@@ -180,8 +200,14 @@ namespace ObituaryTomorrow.UI
             RemoveListener(buttonSmoking, StartSmoking);
             RemoveListener(buttonDiceTest, RollDiceTest);
             RemoveListener(buttonConfirmMission, ConfirmMission);
+            RemoveListener(buttonReturnMainMenu, ReturnToMainMenu);
             RemoveListeners(buttonClosePopups, ClosePopup);
             RemoveListener(buttonConfirmResult, ConfirmResult);
+
+            if (selectCardController != null)
+            {
+                selectCardController.SelectionCompleted -= OnCardSelectionCompleted;
+            }
 
             ClearChoiceButtons();
         }
@@ -195,8 +221,26 @@ namespace ObituaryTomorrow.UI
             HideAllPopups();
             ResetDialogueArea();
             RefreshStaticTexts();
+            InitializeCardSelection();
             RefreshHud();
             RefreshInteractableState();
+        }
+
+        private void InitializeCardSelection()
+        {
+            EnsureSelectCardController();
+            selectCardController?.Initialize();
+        }
+
+        private void OnCardSelectionCompleted()
+        {
+            RefreshHud();
+            RefreshInteractableState();
+        }
+
+        private bool IsCardSelectionBlockingInput()
+        {
+            return selectCardController != null && selectCardController.IsBlockingInput;
         }
 
         private void OpenSettings()
@@ -247,6 +291,17 @@ namespace ObituaryTomorrow.UI
             {
                 GameManager.Instance.ChangeState(GameState.MainRoom);
             }
+        }
+
+        private void ReturnToMainMenu()
+        {
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError("GameManager is missing. Cannot return to SCN_MainMenu.");
+                return;
+            }
+
+            GameManager.Instance.ReturnToMainMenu();
         }
 
         private void StartSmoking()
@@ -737,40 +792,53 @@ namespace ObituaryTomorrow.UI
 
         private void RefreshInteractableState()
         {
+            bool cardSelectionBlocking = IsCardSelectionBlockingInput();
+            bool allowDeskInteraction = !inCall && !cardSelectionBlocking;
+
             if (buttonSettings != null)
             {
-                buttonSettings.interactable = !inCall;
+                buttonSettings.interactable = allowDeskInteraction;
             }
 
             if (buttonOpenYellowPages != null)
             {
-                buttonOpenYellowPages.interactable = !inCall;
+                buttonOpenYellowPages.interactable = allowDeskInteraction;
             }
 
             if (buttonDial != null)
             {
-                buttonDial.interactable = !inCall;
+                buttonDial.interactable = allowDeskInteraction;
             }
 
             if (buttonOpenNewspaper != null)
             {
-                buttonOpenNewspaper.interactable = !inCall;
+                buttonOpenNewspaper.interactable = allowDeskInteraction;
             }
 
             if (buttonOpenTaskBook != null)
             {
-                buttonOpenTaskBook.interactable = !inCall;
+                buttonOpenTaskBook.interactable = allowDeskInteraction;
             }
 
             if (buttonOpenCard != null)
             {
-                buttonOpenCard.interactable = !inCall;
+                buttonOpenCard.interactable = allowDeskInteraction;
+            }
+
+            if (buttonOpenAchievement != null)
+            {
+                buttonOpenAchievement.interactable = allowDeskInteraction;
             }
 
             if (buttonSmoking != null)
             {
                 bool hasCigarettes = cigaretteSystem != null && cigaretteSystem.Count > 0;
-                buttonSmoking.interactable = hasCigarettes;
+                buttonSmoking.interactable = allowDeskInteraction && hasCigarettes;
+            }
+
+            if (buttonDiceTest != null)
+            {
+                buttonDiceTest.interactable = allowDeskInteraction;
             }
         }
 
@@ -1012,6 +1080,7 @@ namespace ObituaryTomorrow.UI
             AssignIfMissing(ref buttonDial, FindComponentByObjectName<Button>("Button_Dial"));
             AssignIfMissing(ref buttonSmoking, FindComponentByObjectName<Button>("Button_Smoking"));
             AssignIfMissing(ref buttonDiceTest, FindOrAddButtonByObjectName("DiceTest"));
+            AssignIfMissing(ref buttonReturnMainMenu, FindComponentByObjectName<Button>("Button_Return"));
 
             AssignIfMissing(ref panelSettings, FindGameObjectByName("Panel_Settings"));
             AssignIfMissing(ref dialogueAreaRoot, FindGameObjectByName("Panel_DialogueArea"));

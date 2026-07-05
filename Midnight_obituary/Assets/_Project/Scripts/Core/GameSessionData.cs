@@ -7,6 +7,7 @@ namespace ObituaryTomorrow.Core
     public sealed class GameSessionData
     {
         public PlayerRuntimeData Player { get; set; }
+        public bool PlayerCardsConfirmed { get; set; }
         public string CurrentMissionId { get; set; }
         public string CurrentNpcId { get; set; }
         public int CurrentDay { get; set; }
