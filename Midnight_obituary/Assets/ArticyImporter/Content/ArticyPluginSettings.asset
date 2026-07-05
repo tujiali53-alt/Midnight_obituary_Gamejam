@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 1760449090, guid: 538242286e35fb84f8e90dd86ba08b80, type: 3}
   m_Name: ArticyPluginSettings
   m_EditorClassIdentifier: 
-  mUsedImportFile: "Assets/_Project/Art/articy/\u660E\u65E5\u8BA3\u544A_chapterjudith_edition1.articyu3d"
+  mUsedImportFile: "Assets/_Project/Art/articy/\u5348\u591C\u8BA3\u544A.articyu3d"
   mUsedLocalizationPath: 
   mAddressablesGroupsKeys: []
   mAddressablesGroupsValues: []

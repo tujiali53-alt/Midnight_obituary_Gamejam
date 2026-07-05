@@ -302,19 +302,7 @@ namespace ObituaryTomorrow.UI
 
         private void AppendPlayerChoice(string label)
         {
-            string normalized = NormalizeDisplayText(label).Replace("\n", " ");
-
-            if (string.IsNullOrWhiteSpace(normalized) || IsContinueChoice(normalized))
-            {
-                return;
-            }
-
-            AppendDialogueLine($"\u4f60\uff1a{normalized}");
-        }
-
-        private static bool IsContinueChoice(string label)
-        {
-            return string.Equals(NormalizeDisplayText(label), "\u7ee7\u7eed", StringComparison.Ordinal);
+            // Player choices drive branching and call count, but are not written into dialogue history.
         }
 
         private void RefreshDialogueHistoryText()
